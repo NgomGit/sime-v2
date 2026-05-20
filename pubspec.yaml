@@ -1,0 +1,51 @@
+name: sime_v2
+description: ANPEJ SIME V2 - Système d'Information sur le Marché de l'Emploi
+version: 1.0.0+1
+publish_to: none
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  # Modifie cette ligne comme ceci :
+  intl: ^0.20.2
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  go_router: ^14.2.0
+  dio: ^5.4.3
+  retrofit: ^4.1.0
+  isar: ^3.1.0+1
+  isar_flutter_libs: ^3.1.0+1
+  flutter_secure_storage: ^9.0.0
+  hive_flutter: ^1.1.0
+  connectivity_plus: ^6.0.3
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  flutter_svg: ^2.0.10+1
+  local_auth: ^2.2.0
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.9.0
+  equatable: ^2.0.5
+  dartz: ^0.10.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  riverpod_generator: ^2.4.0
+  build_runner: ^2.4.11
+  freezed: ^2.5.2
+  json_serializable: ^6.8.0
+  isar_generator: ^3.1.0+1
+  retrofit_generator: ^8.1.0
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    # - assets/icons/
