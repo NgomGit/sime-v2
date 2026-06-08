@@ -45,7 +45,7 @@ class ProfileScreen extends ConsumerWidget {
                     // Informations Personnelles
                     InfoSectionCard(
                       title: 'Informations personnelles',
-                      onEditTap: () {},
+                      onEditTap: () {context.push(AppRoutes.editPersonalProfile);},
                       rows: [
                         ('Nom complet', profile.fullName),
                         ('Date de naissance', '${profile.birthDate} · 26 ans'),
@@ -59,7 +59,7 @@ class ProfileScreen extends ConsumerWidget {
                     // Profil Professionnel
                     InfoSectionCard(
                       title: 'Profil professionnel',
-                      onEditTap: () {},
+                      onEditTap: () {context.push(AppRoutes.editProfessionalProfile);},
                       rows: [
                         ('Niveau d\'étude', profile.studyLevel),
                         ('Domaine', profile.domain),

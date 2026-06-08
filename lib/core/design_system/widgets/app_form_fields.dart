@@ -16,12 +16,13 @@ class SField extends StatelessWidget {
     this.isValid = false,
     this.isPhone = false,
     this.keyboardType = TextInputType.text,
+    this.controller = null,
   });
   final String label, hint;
   final String? hint2;
   final bool isValid, isPhone;
   final TextInputType ? keyboardType;
-
+  final TextEditingController? controller;
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -34,6 +35,7 @@ class SField extends StatelessWidget {
         TextFormField(
           initialValue: isValid ? hint : null,
           keyboardType: keyboardType,
+          controller: controller,
           decoration: InputDecoration(
             hintText: hint,
             suffixIcon: isValid

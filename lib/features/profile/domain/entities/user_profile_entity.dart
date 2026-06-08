@@ -38,6 +38,35 @@ class UserProfileEntity {
     this.avatarUrl,
   });
 
+   /// Permet de copier l'instance actuelle en modifiant uniquement certains champs.
+  UserProfileEntity copyWith({
+    String? fullName,
+    String? birthDate,
+    String? cin,
+    String? nationality,
+    String? location,
+    String? studyLevel,
+    String? domain,
+    String? experience,
+    String? lastDegree,
+  }) {
+    return UserProfileEntity(
+      id: id,
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      phone: phone,
+      birthDate: birthDate ?? this.birthDate,
+      cin: cin ?? this.cin,
+      nationality: nationality ?? this.nationality,
+      location: location ?? this.location,
+      studyLevel: studyLevel ?? this.studyLevel,
+      domain: domain ?? this.domain,
+      experience: experience ?? this.experience,
+      lastDegree: lastDegree ?? this.lastDegree, tags: tags,
+    );
+  }
+
   String get fullName => '$firstName $lastName';
   
   String get initials {

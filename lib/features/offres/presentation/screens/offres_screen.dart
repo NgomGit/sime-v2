@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:sime_v2/core/const/app_routes.dart';
 
 import '../../../../core/design_system/tokens/app_colors.dart';
 import '../../../../core/design_system/tokens/app_dimensions.dart';
@@ -323,7 +325,7 @@ class _OffreCard extends StatelessWidget {
                 ),
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: () {context.push(AppRoutes.offreDetails, extra: offre.id);},
                 icon: const Icon(Icons.favorite_border,
                     color: AppColors.neutral200),
                 padding: EdgeInsets.zero,

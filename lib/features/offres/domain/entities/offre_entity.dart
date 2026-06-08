@@ -15,7 +15,11 @@ class OffreEntity extends Equatable {
     this.educationLevel,
     this.description,
     this.isFeatured = false,
-    this.isSaved = false,
+    this.isSaved = false, 
+    this.level, this.daysLeft = 3,
+    this.experienceYears,this.applicantCount, this.sector, this.companySize, 
+    this.referenceNumber, this.publishedAt, this.companyDescription, this.missions = const [],
+    this.requirements = const [], this.benefits = const [], this.recruitmentSteps = const [],
   });
 
   final String id;
@@ -29,7 +33,30 @@ class OffreEntity extends Equatable {
   final String? description;
   final bool isFeatured;
   final bool isSaved;
+  final OffreLevel? level;
+  final int daysLeft;
+  final String? experienceYears;
+  final int? applicantCount;
+  final String? sector;
+  final String? companySize;
+  final String? referenceNumber;
+  final DateTime? publishedAt;
+  final String? companyDescription;
+  final List<String> missions;
+  final List<String> requirements;
+  final List<String> benefits;
+  final List<String> recruitmentSteps;
 
   @override
   List<Object?> get props => [id, title, company, type];
+
+  OffreEntity? copyWith({required bool isSaved}) {}
+}
+
+class OffreLevel {
+  final String name;
+  const OffreLevel._(this.name);
+
+  static const national = OffreLevel._('National');
+  static const international = OffreLevel._('International');
 }
