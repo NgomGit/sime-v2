@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sime_v2/core/const/app_routes.dart';
 import 'package:sime_v2/features/auth/presentation/screens/connection_screen.dart';
+import 'package:sime_v2/features/notification/presentation/screens/notification_screen.dart';
 import 'package:sime_v2/features/offres/presentation/screens/offres_details_screen.dart';
 import 'package:sime_v2/features/profile/presentation/screens/edit_personal_profile_screen.dart';
 import 'package:sime_v2/features/profile/presentation/screens/edit_professional_profile.dart';
@@ -34,6 +35,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'register',
         builder: (ctx, state) => const InscriptionScreen(),
       ),
+      // GoRoute(
+      //   path: AppRoutes.identityScanner,
+      //   name: 'identityScanner',
+      //   builder: (ctx, state) => const IdentityScannerScreen(),
+      // ),
       GoRoute(
         path: AppRoutes.login,
         name: 'login',
@@ -58,7 +64,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.offreDetails,
         name: 'offreDetails',
         builder: (ctx, state) =>
-            OffreDetailScreen(offreId: state.extra as String ?? 'sim_001'),
+            OffreDetailScreen(offreId: state.extra as String),
       ),
 
       GoRoute(
@@ -80,6 +86,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => const MaterialPage(
           fullscreenDialog: true, // Donne un effet de slide du bas
           child: EditProfessionalProfileScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: AppRoutes.notification,
+        name: 'notification',
+        pageBuilder: (context, state) => const MaterialPage(
+          fullscreenDialog: true, // Donne un effet de slide du bas
+          child: NotificationsScreen(),
         ),
       ),
     ],

@@ -1,7 +1,10 @@
 class AppRoutes {
   static const onboarding = '/';
   static const register = '/register';
+  static const identityScanner = '/identity-scanner';
   static const login = '/login';
+
+  static const notification = '/notification';
 
   static const dashboard = '/dashboard';
   static const offres = '/offres';

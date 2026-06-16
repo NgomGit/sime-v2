@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sime_v2/core/const/app_routes.dart';
 
-import '../app_colors.dart';
-import '../app_dimensions.dart';
-import '../app_text_styles.dart';
+import '../tokens/app_colors.dart';
+import '../tokens/app_dimensions.dart';
+import '../tokens/app_text_styles.dart';
 
 class MainScaffold extends StatelessWidget {
   const MainScaffold({super.key, required this.child});
@@ -77,7 +77,7 @@ class _SimeBottomNav extends StatelessWidget {
                     children: [
                       Icon(
                         isActive ? item.activeIcon : item.icon,
-                        size: AppDimensions.iconSize,
+                        size: AppDimensions.cardIconSize,
                         color: isActive ? AppColors.primary900 : AppColors.neutral400,
                       ),
                       const SizedBox(height: 3),

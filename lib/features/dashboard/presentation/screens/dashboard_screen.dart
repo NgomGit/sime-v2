@@ -19,13 +19,19 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int currentIndex = 0;
 
-  static const List<Widget> _screens = [
-    DashboardHomeScreen(),
-    OffresScreen(),
-    RendezVousScreen(),
-    MonDossierScreen(),
-    ProfileScreen(),
+  List<Widget> get _screens => [
+    DashboardHomeScreen(navigationToProfile: navigateToProfile),
+    const OffresScreen(),
+    const RendezVousScreen(),
+    const MonDossierScreen(),
+    const ProfileScreen(),
   ];
+
+  void navigateToProfile() {
+    setState(() {
+      currentIndex = 4; // Index du profil dans la liste des écrans
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

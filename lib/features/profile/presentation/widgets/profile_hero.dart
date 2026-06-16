@@ -6,15 +6,37 @@ import '../../domain/entities/user_profile_entity.dart';
 
 class ProfileHero extends StatelessWidget {
   const ProfileHero({super.key, required this.profile});
+ 
   final UserProfileEntity profile;
-
+ 
+  // Couleur sémantique par tag — conforme à la charte ANPEJ
+  // Emploi salarié → vert, Formation → bleu, Migration → violet,
+  // Numérique → marron secondaire, Bac+3 → neutre chaud
+  Color _tagColor(String tag) {
+    if (tag.toLowerCase().contains('emploi')) return AppColors.primary400;
+    if (tag.toLowerCase().contains('formation')) return AppColors.bleuANPEJ;
+    if (tag.toLowerCase().contains('migration') ||
+        tag.toLowerCase().contains('mobilit')) {
+      return AppColors.violetANPEJ;
+    }
+    if (tag.toLowerCase().contains('financement') ||
+        tag.toLowerCase().contains('auto')) {
+      return AppColors.accent500;
+    }
+    return AppColors.darkTextSecondary; // tag neutre (Bac+3, Numérique, etc.)
+  }
+ 
+  Color _tagBg(String tag) => _tagColor(tag).withAlpha(30);
+  Color _tagBorder(String tag) => _tagColor(tag).withAlpha(70);
+ 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.primary900, // Correspond à #0D1F14
+      // Fond vert forêt sombre — identique à tous les headers héro de l'app
+      color: AppColors.darkSurface,
       padding: const EdgeInsets.only(
-        left: AppDimensions.sp8,
-        right: AppDimensions.sp18,
+        left: AppDimensions.sp20,
+        right: AppDimensions.sp20,
         top: AppDimensions.sp24,
         bottom: AppDimensions.sp28,
       ),
@@ -24,17 +46,16 @@ class ProfileHero extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar Rond
+                // Avatar : fond marron institutionnel + bordure verte
                 Container(
-                  width: 56,
-                  height: 56,
+                  width: 56, height: 56,
                   decoration: BoxDecoration(
-                    color: AppColors.primary900, // Vert foncé de l'avatar
+                    color: AppColors.secondary800,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppColors.primary400.withAlpha(100),
+                      color: AppColors.surface.withAlpha(120),
                       width: 2.5,
                     ),
                   ),
@@ -47,64 +68,68 @@ class ProfileHero extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Bouton Éditer Édition 
+                const Spacer(),
+                // Bouton éditer — fond translucide blanc sur fond sombre
+                // Pattern identique au bouton retour de l'onboarding
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: 32, height: 32,
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(20),
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(color: Colors.white.withAlpha(30)),
+                    color: AppColors.darkBorder,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                    border: Border.all(color: AppColors.darkBorder),
                   ),
+                  alignment: Alignment.center,
                   child: const Icon(
                     Icons.edit_outlined,
                     size: 14,
-                    color: Colors.white70,
+                    color: AppColors.darkTextPrimary,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: AppDimensions.sp12),
+            const SizedBox(height: AppDimensions.sp14),
+ 
+            // Nom complet — blanc pur, typographie forte
             Text(
               profile.fullName,
               style: AppTextStyles.headingMedium.copyWith(
-                color: AppColors.white,
+                color: AppColors.darkTextPrimary,
                 letterSpacing: -0.4,
               ),
             ),
-            const SizedBox(height: AppDimensions.sp10),
+            const SizedBox(height: AppDimensions.sp6),
+ 
+            // Téléphone · Localisation — blanc 60%
             Text(
               '${profile.phone} · ${profile.location}',
               style: AppTextStyles.bodySmall.copyWith(
-                color: Colors.white.withAlpha(100),
+                color: AppColors.darkTextSecondary,
               ),
             ),
-            const SizedBox(height: AppDimensions.sp10),
-            // Tags horizontally scrollable or wrapped
+            const SizedBox(height: AppDimensions.sp14),
+ 
+            // Tags sémantiques — couleurs ANPEJ par service
             Wrap(
               spacing: AppDimensions.sp6,
               runSpacing: AppDimensions.sp6,
               children: profile.tags.map((tag) {
-                final isSpecial = tag == 'Emploi salarié';
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.sp10,
+                    vertical: AppDimensions.sp4,
+                  ),
                   decoration: BoxDecoration(
-                    color: isSpecial 
-                        ? AppColors.primary400.withAlpha(30)
-                        : Colors.white.withAlpha(18),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: isSpecial 
-                          ? AppColors.primary400.withAlpha(60)
-                          : Colors.white.withAlpha(25),
-                    ),
+                    color: _tagBg(tag),
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.radiusFull),
+                    border: Border.all(color: _tagBorder(tag)),
                   ),
                   child: Text(
                     tag,
                     style: AppTextStyles.caption.copyWith(
-                      color: isSpecial ? AppColors.primary400 : Colors.white70,
-                      fontSize: 9,
-                      fontWeight: isSpecial ? FontWeight.w600 : FontWeight.w400,
+                      color: _tagColor(tag),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 );
@@ -116,3 +141,4 @@ class ProfileHero extends StatelessWidget {
     );
   }
 }
+ 

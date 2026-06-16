@@ -20,71 +20,103 @@ class MonDossierScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: stateAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Erreur : $e')),
+          loading: () => const Center(
+            child: CircularProgressIndicator(
+              color: AppColors.secondary800,
+            ),
+          ),
+          error: (e, _) => Center(
+            child: Text(
+              'Erreur : $e',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.neutral500,
+              ),
+            ),
+          ),
           data: (state) => DefaultTabController(
             length: 3,
             child: NestedScrollView(
-              headerSliverBuilder: (context, innerBoxIsScrolled) {
-                return [
-                  // ── Top Bar Blanche ────────────────────────────────────────
-                  SliverToBoxAdapter(
-                    child: Container(
-                      color: AppColors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppDimensions.sp20,
-                        vertical: AppDimensions.sp14,
-                      ),
-                      child: Row(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Mon dossier', style: AppTextStyles.headingSmall),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Dernière mise à jour · 18 mai 2026',
-                                style: AppTextStyles.caption.copyWith(color: AppColors.neutral400),
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                // ── Top bar ──────────────────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Container(
+                    color: AppColors.surface,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.sp20,
+                      vertical: AppDimensions.sp14,
+                    ),
+                    child: Row(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Mon dossier',
+                              style: AppTextStyles.headingSmall.copyWith(
+                                color: AppColors.neutral800,
                               ),
-                            ],
-                          ),
-                          const Spacer(),
-                          Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: AppColors.neutral100,
-                              borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.more_horiz, color: AppColors.primary900, size: 18),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Dernière mise à jour · 18 mai 2026',
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.neutral400,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        // Bouton "···" — fond secondary100 (marron doux)
+                        // Les actions sur le dossier sont institutionnelles
+                        Container(
+                          width: 34, height: 34,
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary100,
+                            borderRadius:
+                                BorderRadius.circular(AppDimensions.radiusSM),
+                            border: Border.all(color: AppColors.border),
                           ),
-                        ],
-                      ),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.more_horiz,
+                            color: AppColors.secondary800, // marron institutionnel
+                            size: 18,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  // ── Custom TabBar ──────────────────────────────────────────
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _SliverTabBarDelegate(
-                      tabBar: TabBar(
-                        labelColor: AppColors.primary900,
-                        unselectedLabelColor: AppColors.neutral400,
-                        indicatorColor: AppColors.primary900,
-                        indicatorSize: TabBarIndicatorSize.label,
-                        indicatorWeight: 2.5,
-                        labelStyle: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w700),
-                        unselectedLabelStyle: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w500),
-                        tabs: const [
-                          Tab(text: 'Statut'),
-                          Tab(text: 'Candidatures'),
-                          Tab(text: 'Historique'),
-                        ],
+                ),
+
+                // ── Tab bar persistant ────────────────────────────────────────
+                // labelColor / indicatorColor → secondary800 (marron)
+                // L'onglet actif représente la vue institutionnelle en cours,
+                // pas un contenu positif — le marron est sémantiquement correct.
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SliverTabBarDelegate(
+                    TabBar(
+                      labelColor: AppColors.secondary800,
+                      unselectedLabelColor: AppColors.neutral400,
+                      indicatorColor: AppColors.secondary800,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      indicatorWeight: 2.5,
+                      dividerColor: AppColors.border,
+                      labelStyle: AppTextStyles.labelSmall.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
+                      unselectedLabelStyle: AppTextStyles.labelSmall.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                      tabs: const [
+                        Tab(text: 'Statut'),
+                        Tab(text: 'Candidatures'),
+                        Tab(text: 'Historique'),
+                      ],
                     ),
                   ),
-                ];
-              },
-              // ── Contenu Unique Unifié sous forme de ScrollView Global ───────
+                ),
+              ],
               body: TabBarView(
                 children: [
                   DossierStatutTab(state: state),
@@ -100,24 +132,41 @@ class MonDossierScreen extends ConsumerWidget {
   }
 }
 
-// ── PERSISTENT TAB BAR DELEGATE ──────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Sliver tab bar delegate
+// ─────────────────────────────────────────────────────────────────────────────
 class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
-  _SliverTabBarDelegate({required this.tabBar});
+  const _SliverTabBarDelegate(this.tabBar);
+
   final TabBar tabBar;
 
   @override
   double get minExtent => tabBar.preferredSize.height;
+
   @override
   double get maxExtent => tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return Container(
-      color: AppColors.white,
-      child: tabBar,
+      color: AppColors.surface,
+      // Séparateur bas visible quand la tab bar est épinglée et que le contenu
+      // défile dessous — évite l'effet "flottant sans ancrage"
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Expanded(child: tabBar),
+          const Divider(height: 1, color: AppColors.border),
+        ],
+      ),
     );
   }
 
   @override
-  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) => false;
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) =>
+      oldDelegate.tabBar != tabBar;
 }

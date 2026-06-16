@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sime_v2/core/design_system/app_colors.dart';
+import 'package:sime_v2/core/design_system/tokens/app_colors.dart';
 import '../tokens/app_dimensions.dart';
 
 

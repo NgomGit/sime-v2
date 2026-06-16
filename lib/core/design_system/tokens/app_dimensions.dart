@@ -43,9 +43,10 @@ abstract final class AppDimensions {
   static const double iconXL = 28.0;
 
   // ── Border widths ────────────────────────────────────────────────────────────
-  static const double borderThin   = 1.0;
-  static const double borderMedium = 1.5;
-  static const double borderThick  = 2.0;
+  static const double borderUltraThin   = 0.5;
+  static const double borderThin        = 1.0;
+  static const double borderMedium      = 1.5;
+  static const double borderThick       = 2.0;
 
   // ── Page padding ─────────────────────────────────────────────────────────────
   static const double pagePaddingH = 20.0;

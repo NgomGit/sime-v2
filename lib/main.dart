@@ -21,7 +21,7 @@ class SimeApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'SIME V2 — ANPEJ',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
+      theme: AppTheme.light, // Utilisation du thème sombre par défaut
       routerConfig: router,
       supportedLocales: const [Locale('fr'), Locale('en')],
       locale: const Locale('fr'),
