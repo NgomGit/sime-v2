@@ -123,7 +123,8 @@ class _AnpejBadge extends StatelessWidget {
           ),
           const SizedBox(width: AppDimensions.sp8),
           Text(
-            'ANPEJ · GUICHET UNIQUE',
+            // 'ANPEJ · GUICHET UNIQUE',
+            'SIME · V2',
             style: AppTextStyles.eyebrow.copyWith(
               color: AppColors.darkTextPrimary, // Texte blanc sur fond sombre
             ),

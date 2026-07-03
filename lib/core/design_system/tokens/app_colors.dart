@@ -25,7 +25,10 @@ abstract final class AppColors {
   // Utilisé pour : CTA principaux, AppBar (onboarding), FAB, chips actifs,
   // focus ring, indicateur tab, bottom nav active, snackbar fond
   static const Color secondary900 = Color(0xFF2C1A05); // Marron très sombre (dark mode surface)
-  static const Color secondary800 = Color(0xFF543E0F); // Marron foncé (CTA primary)
+  static const Color secondary800 =  Color(0xFF543E0F);
+  // Color(0xFF335E17); Vert sombre (dark mode accents) - à réserver pour éléments secondaires en dark mode
+  // Color(0xFF543E0F); Maron sombre (dark mode accents) - à réserver pour éléments secondaires en dark mode
+   // Marron foncé (CTA primary)
   static const Color secondary600 = Color(0xFF735618); // ★ MARRON CHARTE EXACT (C43 M57 J92 N55)
   static const Color secondary400 = Color(0xFF9E7A31); // Marron clair (hover states)
   static const Color secondary100 = Color(0xFFF6F0E4); // Fond marron doux (containers)

@@ -5,7 +5,7 @@ abstract class Failure extends Equatable {
   final String message;
   final int? statusCode;
   @override
-  List<Object?> get props => [message, statusCode];
+  List<Object?> get props => [message];
 }
 
 class NetworkFailure extends Failure {
@@ -34,4 +34,8 @@ class ValidationFailure extends Failure {
 
 class NotFoundFailure extends Failure {
   const NotFoundFailure({required super.message}) : super(statusCode: 404);
+}
+
+class UnknownFailure extends Failure {
+  const UnknownFailure({required super.message}) : super(statusCode: 700);
 }
