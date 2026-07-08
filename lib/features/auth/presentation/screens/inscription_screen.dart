@@ -36,6 +36,19 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
     });
   }
 
+  void _handleBackNavigation() {
+    if (_currentStep > 1) {
+      setState(() => _currentStep--);
+    } else {
+      final canPop = Navigator.of(context).canPop();
+      if (canPop) {
+        Navigator.of(context).pop();
+      } else {
+        context.go(AppRoutes.onboarding);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,28 +57,23 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leadingWidth: 56,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: AppDimensions.sp16),
-          child: GestureDetector(
-            onTap: () => _currentStep > 1
-                ? setState(() => _currentStep--)
-                : Navigator.of(context).canPop()
-                    ? Navigator.of(context).pop()
-                    : context.go(AppRoutes.onboarding),
-            child: Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.neutral50,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                border: Border.all(color: AppColors.border),
+        centerTitle: false,
+        leading: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left: AppDimensions.sp16),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, size: AppDimensions.iconSM),
+              color: AppColors.neutral800,
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                ),
+                side: const BorderSide(color: AppColors.border),
+                fixedSize: const Size(36, 36),
+                padding: EdgeInsets.zero,
               ),
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.arrow_back,
-                size: AppDimensions.iconSM,
-                color: AppColors.neutral800,
-              ),
+              onPressed: _handleBackNavigation,
             ),
           ),
         ),
@@ -88,15 +96,16 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
             ),
           ),
         ],
-        // Bordure bottom conforme à AppBarTheme
         shape: const Border(
-          bottom: BorderSide(color: AppColors.border, width: AppDimensions.borderThin),
+          bottom: BorderSide(
+            color: AppColors.border, 
+            width: AppDimensions.borderThin,
+          ),
         ),
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // Stepper sur fond surface blanc (dans la continuité de l'AppBar)
             ColoredBox(
               color: AppColors.surface,
               child: StepperBar(currentStep: _currentStep, steps: _steps),
@@ -107,11 +116,18 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
                   child: _currentStep == 1
-                      ? StepOneForm(
+                      ? Column(
                           key: const ValueKey(1),
-                          selectedGenre: _selectedGenre,
-                          onGenreChanged: (g) =>
-                              setState(() => _selectedGenre = g),
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            StepOneForm(
+                              selectedGenre: _selectedGenre,
+                              onGenreChanged: (g) =>
+                                  setState(() => _selectedGenre = g),
+                            ),
+                            const SizedBox(height: AppDimensions.sp20),
+                        
+                          ],
                         )
                       : _currentStep == 2
                           ? const StepTwoForm(key: ValueKey(2))
@@ -140,7 +156,54 @@ class _InscriptionScreenState extends ConsumerState<InscriptionScreen> {
   }
 
   void _fillFields(ScannedDocument result) {
-    print('Results are : $result');
+    debugPrint('Results are : $result');
+    if (result.sex != null) {
+      setState(() {
+        _selectedGenre = result.sex;
+      });
+    }
   }
 }
 
+// // ─────────────────────────────────────────────────────────────────────────────
+// // Sub-Widget: Tuile de sélection du Genre
+// // ─────────────────────────────────────────────────────────────────────────────
+// class _GenreSelectorTile extends StatelessWidget {
+//   const _GenreSelectorTile({
+//     required this.label,
+//     required this.isSelected,
+//     required this.onTap,
+//   });
+
+//   final String label;
+//   final bool isSelected;
+//   final VoidCallback onTap;
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return InkWell(
+//       onTap: onTap,
+//       borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
+//       child: AnimatedContainer(
+//         duration: const Duration(milliseconds: 200),
+//         height: AppDimensions.inputHeight,
+//         alignment: Alignment.center,
+//         decoration: BoxDecoration(
+//           color: isSelected ? AppColors.secondary800 : AppColors.white,
+//           borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
+//           border: Border.all(
+//             color: isSelected ? AppColors.secondary800 : AppColors.border,
+//             width: isSelected ? AppDimensions.borderMedium : AppDimensions.borderThin,
+//           ),
+//         ),
+//         child: Text(
+//           label,
+//           style: AppTextStyles.bodyMedium.copyWith(
+//             color: isSelected ? AppColors.white : AppColors.neutral600,
+//             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
