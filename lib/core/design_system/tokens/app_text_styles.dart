@@ -34,7 +34,7 @@ abstract final class AppTextStyles {
     height: 1.7, color: AppColors.neutral500,
   );
   static const TextStyle bodyMedium = TextStyle(
-    fontFamily: _font, fontSize: 13, fontWeight: FontWeight.w400,
+    fontFamily: _font, fontSize: 13, fontWeight: FontWeight.w500,
     height: 1.6, color: AppColors.neutral500,
   );
   static const TextStyle bodySmall = TextStyle(
@@ -44,19 +44,19 @@ abstract final class AppTextStyles {
 
   // ── Label ────────────────────────────────────────────────────────────────────
   static const TextStyle labelLarge = TextStyle(
-    fontFamily: _font, fontSize: 13, fontWeight: FontWeight.w600,
+    fontFamily: _font, fontSize: 16, fontWeight: FontWeight.w600,
     letterSpacing: -0.2, color: AppColors.neutral800,
   );
   static const TextStyle labelMedium = TextStyle(
-    fontFamily: _font, fontSize: 12, fontWeight: FontWeight.w600,
+    fontFamily: _font, fontSize: 14, fontWeight: FontWeight.w600,
     color: AppColors.neutral800,
   );
   static const TextStyle labelSmall = TextStyle(
-    fontFamily: _font, fontSize: 10, fontWeight: FontWeight.w600,
+    fontFamily: _font, fontSize: 12, fontWeight: FontWeight.w600,
     letterSpacing: 0.4, color: AppColors.neutral400,
   );
   static const TextStyle labelXSmall = TextStyle(
-    fontFamily: _font, fontSize: 9, fontWeight: FontWeight.w600,
+    fontFamily: _font, fontSize: 10, fontWeight: FontWeight.w600,
     letterSpacing: 0.3, color: AppColors.neutral300,
   );
 

@@ -10,7 +10,7 @@ import 'package:sime_v2/core/design_system/tokens/app_text_styles.dart';
 import 'package:sime_v2/core/design_system/widgets/s_card.dart';
 import 'package:sime_v2/core/design_system/widgets/s_status_badge.dart';
 import 'package:sime_v2/core/design_system/widgets/s_tag.dart';
-import 'package:sime_v2/features/auth/presentation/providers/auth_provider.dart';
+import 'package:sime_v2/features/auth/presentation/providers/login_provider.dart';
 import 'package:sime_v2/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:sime_v2/features/dossier/domain/entities/dossier_entity.dart';
 import 'package:sime_v2/features/offres/domain/entities/offre_entity.dart';
@@ -24,7 +24,12 @@ class DashboardHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboardAsync = ref.watch(dashboardProvider);
-    final user = ref.watch(authProvider).valueOrNull;
+    final loginState = ref.watch(loginNotifierProvider).valueOrNull;
+    if (loginState?.authResponse == null) {
+      return const SizedBox
+          .shrink(); // Ou un loader le temps que la redirection GoRouter s'opère
+    }
+    final user = loginState!.authResponse!.user;
 
     return SafeArea(
       child: CustomScrollView(
@@ -32,8 +37,8 @@ class DashboardHomeScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: _TopBar(
               navigationToProfile: navigationToProfile,
-              firstName: user?.firstName ?? 'Mamadou',
-              initials: user?.initials ?? 'MA',
+              firstName: user.firstName,
+              initials: user.firstName.substring(0, 2).toUpperCase(),
             ),
           ),
           dashboardAsync.when(

@@ -90,7 +90,7 @@ class OffreCard extends StatelessWidget {
                   children: [
                     Text(
                       offre.title,
-                      style: AppTextStyles.labelLarge
+                      style: AppTextStyles.labelMedium
                           .copyWith(color: AppColors.neutral800),
                     ),
                     const SizedBox(height: AppDimensions.sp4),

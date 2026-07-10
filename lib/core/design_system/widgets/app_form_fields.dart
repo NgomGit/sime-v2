@@ -12,6 +12,8 @@ import 'package:sime_v2/core/utils/country_token.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 /// Champ texte standard avec background blanc. Focus ring = marron [secondary800].
 /// Icône de validation = vert ANPEJ [success].
+// app_form_fields.dart
+
 class SField extends StatelessWidget {
   const SField({
     super.key,
@@ -21,7 +23,12 @@ class SField extends StatelessWidget {
     this.isValid = false,
     this.isPhone = false,
     this.keyboardType = TextInputType.text,
-    this.controller,
+    this.controller, 
+    this.onChanged,  
+    this.obscureText = false,
+    this.validator,
+    this.suffixIcon,
+    this.autofillHints,
   });
  
   final String label, hint;
@@ -29,6 +36,11 @@ class SField extends StatelessWidget {
   final bool isValid, isPhone;
   final TextInputType? keyboardType;
   final TextEditingController? controller;
+  final void Function(String)? onChanged;
+  final bool obscureText;
+  final String? Function(String?)? validator;
+  final Widget? suffixIcon;
+  final Iterable<String>? autofillHints;
  
   @override
   Widget build(BuildContext context) {
@@ -44,23 +56,25 @@ class SField extends StatelessWidget {
           controller: controller,
           initialValue: controller != null ? null : (isValid ? hint : null),
           keyboardType: keyboardType,
+          onChanged: onChanged,
+          obscureText: obscureText,
+          validator: validator,
+          autofillHints: autofillHints,
           style: AppTextStyles.bodyMedium.copyWith(color: AppColors.neutral800),
           decoration: InputDecoration(
             filled: true,
-            fillColor: AppColors.white, // Background blanc appliqué
+            fillColor: AppColors.white,
             hintText: hint,
-            hintStyle: AppTextStyles.bodyMedium
-                .copyWith(color: AppColors.neutral400),
-            suffixIcon: isValid
+            hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.neutral400),
+            suffixIcon: suffixIcon ?? (isValid
                 ? const Icon(
                     Icons.check_circle_outline,
                     color: AppColors.success,
                     size: AppDimensions.iconSM,
                   )
-                : null,
+                : null),
             prefixText: isPhone ? '🇸🇳 +221 ' : null,
-            prefixStyle: AppTextStyles.bodyMedium
-                .copyWith(color: AppColors.neutral800),
+            prefixStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.neutral800),
           ),
         ),
         if (hint2 != null) ...[
@@ -71,6 +85,54 @@ class SField extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SPasswordField
+// ─────────────────────────────────────────────────────────────────────────────
+/// Champ mot de passe autonome gérant nativement son état de visibilité.
+class SPasswordField extends StatefulWidget {
+  const SPasswordField({
+    super.key,
+    required this.label,
+    required this.hint,
+    this.controller,
+    this.validator,
+    this.autofillHints = const [AutofillHints.password],
+  });
+
+  final String label, hint;
+  final TextEditingController? controller;
+  final String? Function(String?)? validator;
+  final Iterable<String>? autofillHints;
+
+  @override
+  State<SPasswordField> createState() => _SPasswordFieldState();
+}
+
+class _SPasswordFieldState extends State<SPasswordField> {
+  bool _isObscure = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return SField(
+      label: widget.label,
+      hint: widget.hint,
+      controller: widget.controller,
+      obscureText: _isObscure,
+      validator: widget.validator,
+      autofillHints: widget.autofillHints,
+      keyboardType: TextInputType.visiblePassword,
+      suffixIcon: IconButton(
+        icon: Icon(
+          _isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+          color: AppColors.neutral500,
+          size: 20,
+        ),
+        onPressed: () => setState(() => _isObscure = !_isObscure),
+      ),
     );
   }
 }
@@ -131,15 +193,19 @@ class SPhoneField extends StatefulWidget {
   const SPhoneField({
     super.key,
     required this.label,
+    this.hint,
     this.controller,
     this.onPhoneNumberChanged,
     this.isValid = false,
+    this.onChanged,
   });
  
   final String label;
   final TextEditingController? controller;
   final ValueChanged<String>? onPhoneNumberChanged;
   final bool isValid;
+  final void Function(String)? onChanged;
+  final String? hint;
  
   @override
   State<SPhoneField> createState() => _SPhoneFieldState();
@@ -170,30 +236,19 @@ class _SPhoneFieldState extends State<SPhoneField> {
       backgroundColor: AppColors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppDimensions.radiusXL),
+          top: Radius.circular(AppDimensions.radiusXXL),
         ),
       ),
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppDimensions.sp16),
+          padding: const EdgeInsets.symmetric(vertical: AppDimensions.sp10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 36, height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.neutral200,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
+
               const Padding(
-                padding: EdgeInsets.fromLTRB(
-                  AppDimensions.sp20, AppDimensions.sp16,
-                  AppDimensions.sp20, AppDimensions.sp10,
-                ),
+                padding: EdgeInsets.symmetric(vertical: AppDimensions.sp16, horizontal: AppDimensions.sp20),
                 child: Text(
                   'Sélectionnez un pays',
                   style: AppTextStyles.headingSmall,
@@ -205,7 +260,7 @@ class _SPhoneFieldState extends State<SPhoneField> {
                 return ListTile(
                   leading: Text(
                     country.flag,
-                    style: const TextStyle(fontSize: 20),
+                    style:AppTextStyles.labelLarge,
                   ),
                   title: Text(country.name, style: AppTextStyles.labelMedium),
                   trailing: Text(

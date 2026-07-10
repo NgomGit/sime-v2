@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sime_v2/core/const/app_routes.dart';
-import 'package:sime_v2/features/auth/presentation/screens/connection_screen.dart';
+import 'package:sime_v2/features/auth/presentation/screens/login_screen.dart';
 import 'package:sime_v2/features/notification/presentation/screens/notification_screen.dart';
 import 'package:sime_v2/features/offres/presentation/screens/offres_details_screen.dart';
 import 'package:sime_v2/features/profile/presentation/screens/edit_personal_profile_screen.dart';
@@ -43,7 +43,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.login,
         name: 'login',
-        builder: (ctx, state) => const ConnexionScreen(),
+        builder: (ctx, state) => const LoginScreen(),
       ),
       GoRoute(
         path: AppRoutes.dashboard,
