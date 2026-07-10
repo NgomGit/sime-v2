@@ -9,6 +9,6 @@ class LoginUseCase {
   LoginUseCase(this._repository);
 
   Future<AuthResponseModel> call(String username, String password) async {
-    return await _repository.login(username, password, username: username);
+    return await _repository.login(username, password);
   }
 }

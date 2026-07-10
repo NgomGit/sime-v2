@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sime_v2/core/design_system/widgets/s_app_bar.dart';
 import 'package:sime_v2/features/dashboard/presentation/screens/dashboard_home_screen.dart';
 import 'package:sime_v2/features/dossier/presentation/screens/mon_dossier_screen.dart';
 import 'package:sime_v2/features/offres/presentation/screens/offres_screen.dart';
@@ -36,6 +37,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: const SAppBar(
+        title: Text(''),
+        ),
       backgroundColor: AppColors.background,
       body: IndexedStack(
         index: currentIndex,

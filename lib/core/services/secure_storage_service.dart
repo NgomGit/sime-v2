@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:sime_v2/features/auth/data/models/auth_response_model.dart';
 
 class SecureStorageService {
@@ -11,6 +14,23 @@ class SecureStorageService {
   static const String _authResponse = 'auth_response';
   static const String _keyRememberMe = 'remember_me';
   static const String _keySavedUsername = 'saved_username';
+  static const _hiveEncryptionKey = 'hive_crypto_secret_key';
+
+
+/// Récupère ou génère une clé de chiffrement AES-256 robuste pour Hive
+  Future<List<int>> getOrCreateHiveEncryptionKey() async {
+    final hexKey = await _storage.read(key: _hiveEncryptionKey);
+    
+    if (hexKey != null) {
+      return base64Url.decode(hexKey);
+    }
+
+    // Génération d'une clé sécurisée de 32 octets (256 bits)
+    final newKey = Hive.generateSecureKey();
+    await _storage.write(key: _hiveEncryptionKey, value: base64Url.encode(newKey));
+    return newKey;
+  }
+
 
   // ── Gestion du Jeton JWT ──────────────────────────────────────────────────
   
