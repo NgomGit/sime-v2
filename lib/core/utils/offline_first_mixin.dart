@@ -66,7 +66,7 @@ mixin OfflineFirstMixin {
         }
         return Left(_mapDioError(e));
       } catch (e) {
-        return Left(UnknownFailure(e.toString(), message: 'Erreur inconnue'));
+        return const Left(UnknownFailure(message: 'Erreur inconnue'));
       }
     } else {
       // Mode offline → lecture Hive
@@ -100,7 +100,7 @@ mixin OfflineFirstMixin {
     } on DioException catch (e) {
       return Left(_mapDioError(e));
     } catch (e) {
-      return Left(UnknownFailure(e.toString(), message: 'Erreur inconnue'));
+      return const Left(UnknownFailure( message: 'Erreur inconnue'));
     }
   }
 
@@ -133,7 +133,7 @@ mixin OfflineFirstMixin {
         403 => const AuthFailure(message: 'Accès refusé'),
         404 => const NotFoundFailure(message: 'Resource non trouvée'),
         >= 500 => ServerFailure( message: serverMessage ?? 'Erreur serveur'),
-        _ => const UnknownFailure('', message: 'Erreur inconnue'),
+        _ => const UnknownFailure(message: 'Erreur inconnue'),
       };
     }
 
@@ -145,7 +145,7 @@ mixin OfflineFirstMixin {
       DioExceptionType.connectionError   =>
           const NetworkFailure(message: 'Impossible de joindre le serveur'),
       DioExceptionType.cancel            =>
-          const UnknownFailure('Requête annulée', message: 'Requête annulée'),
+          const UnknownFailure(message: 'Requête annulée'),
       _                                  => const NetworkFailure(message: 'Erreur de réseau'),
     };
   }

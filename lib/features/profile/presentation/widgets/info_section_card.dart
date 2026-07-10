@@ -30,7 +30,7 @@ class InfoSectionCard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: AppTextStyles.labelLarge.copyWith(
+                style: AppTextStyles.labelMedium.copyWith(
                   color: AppColors.neutral800,
                 ),
               ),
@@ -78,7 +78,7 @@ class InfoSectionCard extends StatelessWidget {
                   // Clé — neutre moyen
                   Text(
                     row.$1,
-                    style: AppTextStyles.labelMedium.copyWith(
+                    style: AppTextStyles.labelSmall.copyWith(
                       color: AppColors.neutral400,
                       fontWeight: FontWeight.w500,
                     ),
@@ -89,7 +89,7 @@ class InfoSectionCard extends StatelessWidget {
                     child: Text(
                       row.$2,
                       textAlign: TextAlign.end,
-                      style: AppTextStyles.labelMedium.copyWith(
+                      style: AppTextStyles.labelSmall.copyWith(
                         color: AppColors.neutral800,
                         fontWeight: FontWeight.w600,
                       ),

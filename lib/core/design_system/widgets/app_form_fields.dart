@@ -1,17 +1,19 @@
 // ─── Shared field widgets ─────────────────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart'; // Requis pour formater la date affichée
 import 'package:sime_v2/core/design_system/tokens/app_colors.dart';
 import 'package:sime_v2/core/design_system/tokens/app_dimensions.dart';
 import 'package:sime_v2/core/design_system/tokens/app_text_styles.dart';
 import 'package:sime_v2/core/utils/country_token.dart';
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // SField
 // ─────────────────────────────────────────────────────────────────────────────
-/// Champ texte standard. Focus ring = marron [secondary800] (cohérence inputs).
+/// Champ texte standard avec background blanc. Focus ring = marron [secondary800].
 /// Icône de validation = vert ANPEJ [success].
+// app_form_fields.dart
+
 class SField extends StatelessWidget {
   const SField({
     super.key,
@@ -21,7 +23,12 @@ class SField extends StatelessWidget {
     this.isValid = false,
     this.isPhone = false,
     this.keyboardType = TextInputType.text,
-    this.controller,
+    this.controller, 
+    this.onChanged,  
+    this.obscureText = false,
+    this.validator,
+    this.suffixIcon,
+    this.autofillHints,
   });
  
   final String label, hint;
@@ -29,6 +36,11 @@ class SField extends StatelessWidget {
   final bool isValid, isPhone;
   final TextInputType? keyboardType;
   final TextEditingController? controller;
+  final void Function(String)? onChanged;
+  final bool obscureText;
+  final String? Function(String?)? validator;
+  final Widget? suffixIcon;
+  final Iterable<String>? autofillHints;
  
   @override
   Widget build(BuildContext context) {
@@ -44,22 +56,25 @@ class SField extends StatelessWidget {
           controller: controller,
           initialValue: controller != null ? null : (isValid ? hint : null),
           keyboardType: keyboardType,
+          onChanged: onChanged,
+          obscureText: obscureText,
+          validator: validator,
+          autofillHints: autofillHints,
           style: AppTextStyles.bodyMedium.copyWith(color: AppColors.neutral800),
           decoration: InputDecoration(
+            filled: true,
+            fillColor: AppColors.white,
             hintText: hint,
-            hintStyle: AppTextStyles.bodyMedium
-                .copyWith(color: AppColors.neutral400),
-            // Vert ANPEJ pour la validation — signale une opportunité acquise
-            suffixIcon: isValid
+            hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.neutral400),
+            suffixIcon: suffixIcon ?? (isValid
                 ? const Icon(
                     Icons.check_circle_outline,
                     color: AppColors.success,
                     size: AppDimensions.iconSM,
                   )
-                : null,
+                : null),
             prefixText: isPhone ? '🇸🇳 +221 ' : null,
-            prefixStyle: AppTextStyles.bodyMedium
-                .copyWith(color: AppColors.neutral800),
+            prefixStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.neutral800),
           ),
         ),
         if (hint2 != null) ...[
@@ -73,11 +88,59 @@ class SField extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SPasswordField
+// ─────────────────────────────────────────────────────────────────────────────
+/// Champ mot de passe autonome gérant nativement son état de visibilité.
+class SPasswordField extends StatefulWidget {
+  const SPasswordField({
+    super.key,
+    required this.label,
+    required this.hint,
+    this.controller,
+    this.validator,
+    this.autofillHints = const [AutofillHints.password],
+  });
+
+  final String label, hint;
+  final TextEditingController? controller;
+  final String? Function(String?)? validator;
+  final Iterable<String>? autofillHints;
+
+  @override
+  State<SPasswordField> createState() => _SPasswordFieldState();
+}
+
+class _SPasswordFieldState extends State<SPasswordField> {
+  bool _isObscure = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return SField(
+      label: widget.label,
+      hint: widget.hint,
+      controller: widget.controller,
+      obscureText: _isObscure,
+      validator: widget.validator,
+      autofillHints: widget.autofillHints,
+      keyboardType: TextInputType.visiblePassword,
+      suffixIcon: IconButton(
+        icon: Icon(
+          _isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+          color: AppColors.neutral500,
+          size: 20,
+        ),
+        onPressed: () => setState(() => _isObscure = !_isObscure),
+      ),
+    );
+  }
+}
  
 // ─────────────────────────────────────────────────────────────────────────────
 // SDropdown
 // ─────────────────────────────────────────────────────────────────────────────
-/// Dropdown statique (affichage seul). Chevron neutre [neutral400].
+/// Dropdown statique avec background blanc. Chevron neutre [neutral400].
 class SDropdown extends StatelessWidget {
   const SDropdown({super.key, required this.label, required this.value});
  
@@ -97,7 +160,7 @@ class SDropdown extends StatelessWidget {
           height: AppDimensions.inputHeight,
           padding: const EdgeInsets.symmetric(horizontal: AppDimensions.sp14),
           decoration: BoxDecoration(
-            color: AppColors.neutral50,
+            color: AppColors.white, // Passé de neutral50 à blanc
             borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
             border: Border.all(color: AppColors.border),
           ),
@@ -125,25 +188,24 @@ class SDropdown extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // SPhoneField
 // ─────────────────────────────────────────────────────────────────────────────
-/// Champ téléphone avec sélecteur de pays.
-///
-/// Bordure focus = marron [secondary800] — cohérence avec le focus ring
-/// défini dans [InputDecorationTheme] de [AppTheme].
-/// Pays actif dans le picker = marron [secondary800] (état institutionnel actif).
-/// Validation = vert [success].
+/// Champ téléphone avec sélecteur de pays et background blanc constant.
 class SPhoneField extends StatefulWidget {
   const SPhoneField({
     super.key,
     required this.label,
+    this.hint,
     this.controller,
     this.onPhoneNumberChanged,
     this.isValid = false,
+    this.onChanged,
   });
  
   final String label;
   final TextEditingController? controller;
   final ValueChanged<String>? onPhoneNumberChanged;
   final bool isValid;
+  final void Function(String)? onChanged;
+  final String? hint;
  
   @override
   State<SPhoneField> createState() => _SPhoneFieldState();
@@ -174,31 +236,19 @@ class _SPhoneFieldState extends State<SPhoneField> {
       backgroundColor: AppColors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppDimensions.radiusXL),
+          top: Radius.circular(AppDimensions.radiusXXL),
         ),
       ),
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppDimensions.sp16),
+          padding: const EdgeInsets.symmetric(vertical: AppDimensions.sp10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Drag handle
-              Center(
-                child: Container(
-                  width: 36, height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.neutral200,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
+
               const Padding(
-                padding: EdgeInsets.fromLTRB(
-                  AppDimensions.sp20, AppDimensions.sp16,
-                  AppDimensions.sp20, AppDimensions.sp10,
-                ),
+                padding: EdgeInsets.symmetric(vertical: AppDimensions.sp16, horizontal: AppDimensions.sp20),
                 child: Text(
                   'Sélectionnez un pays',
                   style: AppTextStyles.headingSmall,
@@ -210,10 +260,9 @@ class _SPhoneFieldState extends State<SPhoneField> {
                 return ListTile(
                   leading: Text(
                     country.flag,
-                    style: const TextStyle(fontSize: 20),
+                    style:AppTextStyles.labelLarge,
                   ),
                   title: Text(country.name, style: AppTextStyles.labelMedium),
-                  // Pays actif = marron institutionnel (état de sélection = institution)
                   trailing: Text(
                     country.code,
                     style: AppTextStyles.labelMedium.copyWith(
@@ -225,7 +274,6 @@ class _SPhoneFieldState extends State<SPhoneField> {
                           : FontWeight.w400,
                     ),
                   ),
-                  // Highlight de la tuile active avec teinte marron douce
                   tileColor: isCurrent
                       ? AppColors.secondary100
                       : Colors.transparent,
@@ -244,12 +292,11 @@ class _SPhoneFieldState extends State<SPhoneField> {
  
   @override
   Widget build(BuildContext context) {
-    // Priorité : valid > focused > default
     final borderColor = widget.isValid
-        ? AppColors.success          // Vert : champ validé
+        ? AppColors.success
         : _isFocused
-            ? AppColors.secondary800 // Marron : focus actif (cohérence InputDecorationTheme)
-            : AppColors.border;      // Neutre : état repos
+            ? AppColors.secondary800
+            : AppColors.border;
  
     final borderWidth = _isFocused || widget.isValid
         ? AppDimensions.borderMedium
@@ -267,13 +314,12 @@ class _SPhoneFieldState extends State<SPhoneField> {
           duration: const Duration(milliseconds: 150),
           height: 48,
           decoration: BoxDecoration(
-            color: _isFocused ? AppColors.white : AppColors.neutral50,
+            color: AppColors.white, // Toujours blanc pour la cohérence visuelle
             borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
             border: Border.all(color: borderColor, width: borderWidth),
           ),
           child: Row(
             children: [
-              // ── Sélecteur pays ─────────────────────────────────────────────
               GestureDetector(
                 onTap: _showCountryPicker,
                 behavior: HitTestBehavior.opaque,
@@ -313,8 +359,6 @@ class _SPhoneFieldState extends State<SPhoneField> {
                   ),
                 ),
               ),
- 
-              // ── Saisie numéro ──────────────────────────────────────────────
               Expanded(
                 child: TextFormField(
                   controller: widget.controller,
@@ -341,7 +385,6 @@ class _SPhoneFieldState extends State<SPhoneField> {
                     focusedBorder: InputBorder.none,
                     fillColor: Colors.transparent,
                     isDense: true,
-                    // Vert ANPEJ pour la coche de validation
                     suffixIcon: widget.isValid
                         ? const Icon(
                             Icons.check_circle_rounded,
@@ -359,4 +402,92 @@ class _SPhoneFieldState extends State<SPhoneField> {
     );
   }
 }
- 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SDateField
+// ─────────────────────────────────────────────────────────────────────────────
+/// Champ de sélection de date avec background blanc et sélecteur natif.
+class SDateField extends StatelessWidget {
+  const SDateField({
+    super.key,
+    required this.label,
+    required this.hint,
+    this.selectedDate,
+    required this.onDateSelected,
+    this.firstDate,
+    this.lastDate,
+  });
+
+  final String label, hint;
+  final DateTime? selectedDate;
+  final ValueChanged<DateTime> onDateSelected;
+  final DateTime? firstDate, lastDate;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValue = selectedDate != null;
+    final formattedDate = hasValue 
+        ? DateFormat('dd/MM/yyyy').format(selectedDate!) 
+        : hint;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.labelSmall.copyWith(color: AppColors.neutral800),
+        ),
+        const SizedBox(height: AppDimensions.sp6),
+        InkWell(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: selectedDate ?? DateTime.now(),
+              firstDate: firstDate ?? DateTime(1930),
+              lastDate: lastDate ?? DateTime.now(),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: const ColorScheme.light(
+                      primary: AppColors.secondary800, // Marron institutionnel
+                      onPrimary: AppColors.white,
+                      onSurface: AppColors.neutral800,
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
+            );
+            if (picked != null) onDateSelected(picked);
+          },
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
+          child: Container(
+            height: AppDimensions.inputHeight,
+            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.sp14),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  formattedDate,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: hasValue ? AppColors.neutral800 : AppColors.neutral400,
+                  ),
+                ),
+                const Icon(
+                  Icons.calendar_today_outlined,
+                  color: AppColors.neutral400,
+                  size: AppDimensions.iconSM,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

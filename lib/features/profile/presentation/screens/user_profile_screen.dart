@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sime_v2/core/const/app_routes.dart';
+import 'package:sime_v2/features/auth/presentation/providers/login_provider.dart';
 import 'package:sime_v2/features/profile/presentation/providers/user_profile_provider.dart';
 import 'package:sime_v2/features/profile/presentation/widgets/info_section_card.dart';
 import 'package:sime_v2/features/profile/presentation/widgets/profile_hero.dart';
@@ -75,7 +76,7 @@ class ProfileScreen extends ConsumerWidget {
                   // Déconnexion — action destructive signalée par rouge texte/icône
                   // Pas de fond rouge : l'action est rare, pas urgente
                   GestureDetector(
-                    onTap: () => context.push(AppRoutes.onboarding),
+                    onTap: () => _onLogoutTap(context, ref),
                     child: SCard(
                       padding: const EdgeInsets.all(AppDimensions.sp14),
                       child: Row(
@@ -104,5 +105,13 @@ class ProfileScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+  
+  void _onLogoutTap(BuildContext context, WidgetRef ref) {
+    // 1. On redirige d'abord l'utilisateur pour quitter l'espace sécurisé
+    context.go(AppRoutes.login);
+    
+    // 2. On nettoie l'état d'authentification juste après
+    ref.read(loginNotifierProvider.notifier).logout();
   }
 }

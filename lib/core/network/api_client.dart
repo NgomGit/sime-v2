@@ -1,87 +1,43 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../storage/secure_storage.dart';
-import 'api_constants.dart';
+import 'package:flutter/foundation.dart';
+import 'logging_interceptor.dart';
 
-/// Client Dio configuré pour le Gateway SIME v2.
-/// Injecte automatiquement le JWT Bearer sur chaque requête authentifiée.
+/// [ApiClient] gère la configuration centrale des requêtes HTTP de l'application.
+/// 
+/// Il centralise l'URL de base, les timeouts, les headers globaux,
+/// et intègre un système de logs avancé pour le débogage en mode de développement.
 class ApiClient {
-  ApiClient(this._storage) {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 15),
-        headers: {'Content-Type': 'application/json'},
-      ),
-    );
-    _dio.interceptors.add(_AuthInterceptor(_storage, _dio));
-  }
+  final Dio dio;
 
-  final SecureStorage _storage;
-  late final Dio _dio;
+  /// URL de base du Gateway de préproduction
+  static const String _baseUrl = 'http://10.7.200.51:9010';
+  
+  /// Délais d'expiration configurés à 180 secondes
+  static const Duration _timeout = Duration(seconds: 15);
 
-  Dio get dio => _dio;
-}
-
-/// Intercepteur qui ajoute `Authorization: Bearer <token>` à chaque requête
-/// et gère le refresh automatique via `/api/auth/login` si le token expire (401).
-class _AuthInterceptor extends Interceptor {
-  _AuthInterceptor(this._storage, this._dio);
-
-  final SecureStorage _storage;
-  final Dio _dio;
-
-  @override
-  Future<void> onRequest(
-    RequestOptions options,
-    RequestInterceptorHandler handler,
-  ) async {
-    final token = await _storage.getAccessToken();
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
-    }
-    handler.next(options);
-  }
-
-  @override
-  Future<void> onError(
-    DioException err,
-    ErrorInterceptorHandler handler,
-  ) async {
-    // 401 → tenter un re-login avec les credentials stockés
-    if (err.response?.statusCode == 401) {
-      final credentials = await _storage.getCredentials();
-      if (credentials != null) {
-        try {
-          final response = await _dio.post(
-            ApiConstants.login,
-            data: {
-              'username': credentials.$1,
-              'password': credentials.$2,
+  ApiClient()
+      : dio = Dio(
+          BaseOptions(
+            baseUrl: _baseUrl,
+            connectTimeout: _timeout,
+            receiveTimeout: _timeout,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
             },
-          );
-          final newToken = response.data['accessToken'] as String;
-          await _storage.saveAccessToken(newToken);
+          ),
+        ) {
+    _initializeInterceptors();
+  }
 
-          // Rejouer la requête originale avec le nouveau token
-          final opts = err.requestOptions;
-          opts.headers['Authorization'] = 'Bearer $newToken';
-          final retried = await _dio.fetch(opts);
-          return handler.resolve(retried);
-        } catch (_) {
-          // Refresh échoué → invalider la session
-          await _storage.clearAll();
-        }
-      }
+  /// Initialise les interceptors de Dio.
+  /// Les logs de débogage ne sont activés qu'en mode [kDebugMode] (Développement).
+  void _initializeInterceptors() {
+    if (kDebugMode) {
+      dio.interceptors.add(LoggingInterceptor());
     }
-    handler.next(err);
+    
+    // Tu pourras ajouter ici plus tard ton AuthInterceptor pour injecter le token JWT :
+    // dio.interceptors.add(AuthInterceptor());
   }
 }
-
-// ── Provider ─────────────────────────────────────────────────────────────────
-
-final apiClientProvider = Provider<ApiClient>((ref) {
-  final storage = ref.watch(secureStorageProvider);
-  return ApiClient(storage);
-});

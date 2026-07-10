@@ -1,79 +1,66 @@
-// import '../../../../core/network/api_client.dart';
-// import '../../../../core/network/api_constants.dart';
-// import '../models/auth_models.dart';
+// features/auth/data/datasources/auth_remote_data_source.dart
 
-// abstract interface class AuthRemoteDataSource {
-//   Future<AuthSessionModel> login(String username, String password);
-//   Future<String> register(String username, String email, String password);
-//   Future<UserModel> getMe();
-//   Future<UserModel> updateMe(Map<String, dynamic> body);
-//   Future<String> changePassword(String oldPassword, String newPassword);
-//   Future<String> forgotPassword(String email);
-// }
+import 'package:dio/dio.dart';
+import 'package:sime_v2/core/network/api_client.dart';
+import 'package:sime_v2/core/utils/file_utils.dart';
+import 'package:sime_v2/features/auth/data/models/auth_response_model.dart';
+import 'package:sime_v2/features/auth/data/models/register_user_model.dart';
+import 'package:sime_v2/features/auth/domain/entities/registration_entity.dart';
 
-// class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-//   const AuthRemoteDataSourceImpl(this._client);
-//   final ApiClient _client;
+class AuthRemoteDataSource {
+  final ApiClient _apiClient;
 
-//   @override
-//   Future<AuthSessionModel> login(String username, String password) async {
-//     final response = await _client.dio.post(
-//       ApiConstants.login,
-//       data: {'username': username, 'password': password},
-//     );
-//     return AuthSessionModel.fromJson(
-//       response.data as Map<String, dynamic>,
-//     );
-//   }
+  AuthRemoteDataSource(this._apiClient);
 
-//   @override
-//   Future<String> register(
-//     String username,
-//     String email,
-//     String password,
-//   ) async {
-//     final response = await _client.dio.post(
-//       ApiConstants.register,
-//       data: {
-//         'username': username,
-//         'email': email,
-//         'password': password,
-//         'role': ['ROLE_APPLICANT'],
-//       },
-//     );
-//     return (response.data as Map<String, dynamic>)['message'] as String;
-//   }
+  Future<void> registerUserAccount(RegistrationEntity entity) async {
+    await _apiClient.dio.post(
+      '/auth/api/auth/register',
+      data: RegisterUserDto.toJson(entity),
+    );
+  }
 
-//   @override
-//   Future<UserModel> getMe() async {
-//     final response = await _client.dio.get(ApiConstants.me);
-//     return UserModel.fromJson(response.data as Map<String, dynamic>);
-//   }
+  Future<void> registerApplicantProfile(RegistrationEntity entity) async {
+    String base64StringRecto = "";
+    String base64StringVerso = "";
+    List<String> files = [];
 
-//   @override
-//   Future<UserModel> updateMe(Map<String, dynamic> body) async {
-//     final response = await _client.dio.put(ApiConstants.me, data: body);
-//     return UserModel.fromJson(response.data as Map<String, dynamic>);
-//   }
+    if (entity.documentPathRecto != null) {
+      base64StringRecto = await fileToBase64(entity.documentPathRecto!);
+      files.add(base64StringRecto);
+    }
 
-//   @override
-//   Future<String> changePassword(
-//     String oldPassword,
-//     String newPassword,
-//   ) async {
-//     final response = await _client.dio.put(
-//       ApiConstants.changePassword,
-//       data: {'oldPassword': oldPassword, 'newPassword': newPassword},
-//     );
-//     return (response.data as Map<String, dynamic>)['message'] as String;
-//   }
+    if (entity.documentType == 'CNI' && entity.documentPathVerso != null) {
+      base64StringVerso = await fileToBase64(entity.documentPathVerso!);
+      files.add(base64StringVerso);
+    }
 
-//   @override
-//   Future<String> forgotPassword(String email) async {
-//     final response = await _client.dio.post(
-//       ApiConstants.forgotPassword,
-//       data: {'email': email},
-//     );
-//     return (response.data as Map<String, dynamic>)['message'] as String;
-//   }
-// }
+    await _apiClient.dio.post(
+      '/applicant/api/applicants/register',
+      data: RegisterApplicantDto.toJson(entity: entity, files: files),
+    );
+  }
+
+  Future<AuthResponseModel> login({
+    required String username,
+    required String password,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '/auth/api/auth/login', // Ajuste la route si nécessaire
+        data: {
+          'username': username,
+          'password': password,
+        },
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return AuthResponseModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data['message'] ?? 'Échec de la connexion');
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data?['message'] ?? 'Erreur réseau ou serveur';
+      throw Exception(message);
+    }
+  }
+}

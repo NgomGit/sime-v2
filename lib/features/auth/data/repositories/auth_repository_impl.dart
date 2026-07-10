@@ -1,98 +1,38 @@
-// import 'package:dartz/dartz.dart';
+// features/auth/data/repositories/auth_repository_impl.dart
+import 'package:sime_v2/features/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:sime_v2/features/auth/data/models/auth_response_model.dart';
+import 'package:sime_v2/features/auth/domain/entities/registration_entity.dart';
 
-// import '../../../../core/error/failures.dart';
-// import '../../../../core/network/network_info.dart';
-// import '../../../../core/storage/hive_cache.dart';
-// import '../../../../core/storage/secure_storage.dart';
-// import '../../../../core/utils/offline_first_mixin.dart';
+import '../../domain/repositories/auth_repository.dart';
 
 
-// class AuthRepositoryImpl with OfflineFirstMixin implements AuthRepository {
-//   const AuthRepositoryImpl({
-//     required this.remote,
-//     required this.networkInfo,
-//     required this.cache,
-//     required this.secureStorage,
-//   });
+class AuthRepositoryImpl implements AuthRepository {
+  final AuthRemoteDataSource _remoteDataSource;
 
-//   final AuthRemoteDataSource remote;
-//   final SecureStorage secureStorage;
+  AuthRepositoryImpl(this._remoteDataSource);
 
-//   @override
-//   final NetworkInfo networkInfo;
+  @override
+  Future<void> registerFullDemandeur(RegistrationEntity entity) async {
+    // // Phase 1: Create base system credential access
+    // await _remoteDataSource.registerUserAccount(entity);
+    
+    // Phase 1 et 2: Create profile folder record binding context
+    await _remoteDataSource.registerApplicantProfile(entity);
+  }
+  
+  @override
+  Future<AuthResponseModel> login(String username, String password) async {
+    final responseModel = await _remoteDataSource.login(
+      username: username,
+      password: password,
+    );
 
-//   @override
-//   final HiveCache cache;
+    // 1. Sauvegarde du jeton de sécurité de manière persistante
+    // await _secureStorageService.writeToken(responseModel.token);
 
-//   @override
-//   Future<Either<Failure, AuthSessionEntity>> login({
-//     required String username,
-//     required String password,
-//   }) async =>
-//       remoteOnly(() async {
-//         final session = await remote.login(username, password);
-//         await secureStorage.saveAccessToken(session.accessToken);
-//         await secureStorage.saveCredentials(username, password);
-//         return session;
-//       });
+    // 2. Retour de l'entité domaine mappée pour le Notifier
+    return responseModel;
+  }
 
-//   @override
-//   Future<Either<Failure, String>> register({
-//     required String username,
-//     required String email,
-//     required String password,
-//   }) =>
-//       remoteOnly(() => remote.register(username, email, password));
-
-//   @override
-//   Future<Either<Failure, UserEntity>> getMe() => offlineFirst(
-//         cacheKey: HiveCacheKeys.applicantMe,
-//         remoteCall: () => remote.getMe(),
-//         fromCache: (json) =>
-//             UserModel.fromJson(json as Map<String, dynamic>),
-//         toJson: (user) => (user as UserModel).toJson(),
-//       );
-
-//   @override
-//   Future<Either<Failure, UserEntity>> updateMe({
-//     String? firstName,
-//     String? lastName,
-//     String? phone,
-//     String? email,
-//   }) async {
-//     final result = await remoteOnly<UserEntity>(
-//       () => remote.updateMe({
-//         if (firstName != null) 'firstName': firstName,
-//         if (lastName != null) 'lastName': lastName,
-//         if (phone != null) 'phone': phone,
-//         if (email != null) 'email': email,
-//       }),
-//     );
-//     // Invalider le cache profil après mise à jour
-//     if (result.isRight()) await invalidate(HiveCacheKeys.applicantMe);
-//     return result;
-//   }
-
-//   @override
-//   Future<Either<Failure, String>> changePassword({
-//     required String oldPassword,
-//     required String newPassword,
-//   }) =>
-//       remoteOnly(() => remote.changePassword(oldPassword, newPassword));
-
-//   @override
-//   Future<Either<Failure, String>> forgotPassword({required String email}) =>
-//       remoteOnly(() => remote.forgotPassword(email));
-
-//   @override
-//   Future<void> logout() async {
-//     await secureStorage.clearAll();
-//     await cache.clearAll();
-//   }
-
-//   @override
-//   Future<bool> isAuthenticated() async {
-//     final token = await secureStorage.getAccessToken();
-//     return token != null;
-//   }
-// }
+  
+}

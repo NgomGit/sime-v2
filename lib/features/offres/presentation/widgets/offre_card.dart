@@ -45,8 +45,8 @@ class OffreCard extends StatelessWidget {
 
     return SCard(
       // Si l'offre est "À la une", on applique un fond léger de sa propre couleur thématique
-      color: offre.isFeatured ? bg.withAlpha(25) : AppColors.white,
-      borderColor: offre.isFeatured ? fg : AppColors.border,
+      color: offre.isFeatured ? AppColors.white : AppColors.white,
+      borderColor: offre.isFeatured ? fg.withValues(alpha: 0.6) : AppColors.border,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -90,7 +90,7 @@ class OffreCard extends StatelessWidget {
                   children: [
                     Text(
                       offre.title,
-                      style: AppTextStyles.labelLarge
+                      style: AppTextStyles.labelMedium
                           .copyWith(color: AppColors.neutral800),
                     ),
                     const SizedBox(height: AppDimensions.sp4),
@@ -166,7 +166,7 @@ class OffreCard extends StatelessWidget {
                     context.push(AppRoutes.offreDetails, extra: offre.id),
                 variant: SButtonVariant.outline,
                 fullWidth: false,
-                size: SButtonSize.medium,
+                size: SButtonSize.small,
               ),
 
               const SizedBox(width: 8,),
@@ -176,7 +176,7 @@ class OffreCard extends StatelessWidget {
                 label: 'Postuler', 
                 onPressed: () => {},
                 fullWidth: false,
-                size: SButtonSize.medium,
+                size: SButtonSize.small,
                 ),
             ],
           ),
