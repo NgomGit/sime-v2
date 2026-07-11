@@ -52,9 +52,9 @@ class SecureStorageService {
   // ── Gestion du "Se souvenir de moi" ───────────────────────────────────────
 
   /// Sauvegarde la préférence de connexion de l'utilisateur
-  Future<void> saveRememberMe({required bool remember, String? username}) async {
-    await _storage.write(key: _keyRememberMe, value: remember.toString());
-    if (remember && username != null) {
+  Future<void> saveRememberMe(bool rememberMe, String? username,) async {
+    await _storage.write(key: _keyRememberMe, value: rememberMe.toString());
+    if (rememberMe && username != null) {
       await _storage.write(key: _keySavedUsername, value: username);
     } else {
       await _storage.delete(key: _keySavedUsername);

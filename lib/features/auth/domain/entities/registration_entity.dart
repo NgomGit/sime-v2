@@ -34,7 +34,7 @@ class RegistrationEntity {
   final List<CountryModel> countries;
   final List<RegionModel> regions;
   final List<DepartmentModel> departments;
-  final List<ReferenceModel> municipalities;
+  final List<MunicipalityModel> municipalities;
   final List<CountryModel> nationalities;
 
   const RegistrationEntity({
@@ -94,7 +94,7 @@ class RegistrationEntity {
     List<CountryModel>? countries,
     List<RegionModel>? regions,
     List<DepartmentModel>? departments,
-    List<ReferenceModel>? municipalities,
+    List<MunicipalityModel>? municipalities,
     List<CountryModel>? nationalities,
     bool? isLoading,
     String? errorMessage,

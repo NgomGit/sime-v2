@@ -38,7 +38,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const SAppBar(
-        title: Text(''),
+        title: Text('Sime Platform'),
         ),
       backgroundColor: AppColors.background,
       body: IndexedStack(

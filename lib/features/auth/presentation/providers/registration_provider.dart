@@ -2,24 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sime_v2/core/error/api_exception.dart';
 import 'package:sime_v2/features/auth/data/datasources/reference_remote_datasource.dart';
-import 'package:sime_v2/features/auth/data/datasources/auth_remote_datasource.dart';
-import 'package:sime_v2/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:sime_v2/features/auth/domain/entities/registration_entity.dart';
 import 'package:sime_v2/features/auth/domain/usecases/register_demandeur.dart';
+import 'package:sime_v2/features/auth/providers/auth_providers.dart';
 
-import '../../../../core/network/api_client.dart';
-
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
-
-// Ajout du provider pour la gestion des référentiels (/param/api)
-final referenceDataSourceProvider = Provider((ref) => ReferenceRemoteDataSource(ref.read(apiClientProvider)));
-
-final authRemoteDataSourceProvider =
-    Provider((ref) => AuthRemoteDataSource(ref.read(apiClientProvider)));
-final authRepositoryProvider = Provider(
-    (ref) => AuthRepositoryImpl(ref.read(authRemoteDataSourceProvider)));
-final registerDemandeurUseCaseProvider = Provider(
-    (ref) => RegisterDemandeurUseCase(ref.read(authRepositoryProvider)));
 
 final registrationNotifierProvider =
     StateNotifierProvider<RegistrationNotifier, RegistrationEntity>((ref) {

@@ -63,4 +63,9 @@ class AuthRemoteDataSource {
       throw Exception(message);
     }
   }
+
+  Future<Map<String, dynamic>> updateAuthUser(Map<String, dynamic> payload) async {
+    final response = await _apiClient.dio.put('/auth/api/auth/me', data: payload);
+    return response.data as Map<String, dynamic>;
+  }
 }

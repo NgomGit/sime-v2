@@ -1,9 +1,10 @@
 // features/auth/presentation/providers/login_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sime_v2/core/const/app_routes.dart';
 import 'package:sime_v2/core/providers/secure_storage_provider.dart';
 import 'package:sime_v2/core/storage/hive_cache.dart';
 import 'package:sime_v2/features/auth/data/models/auth_response_model.dart';
-import 'package:sime_v2/features/auth/presentation/providers/registration_provider.dart';
+import 'package:sime_v2/features/auth/providers/auth_providers.dart';
 
 class LoginState {
   final AuthResponseModel? authResponse;
@@ -58,10 +59,15 @@ class LoginNotifier extends AsyncNotifier<LoginState> {
 
   Future<void> logout() async {
     // Nettoyage complet et simultané des deux espaces de stockage
+    final rememberMe = await ref.read(secureStorageServiceProvider).readRememberMe();
+    final username = await ref.read(secureStorageServiceProvider).readSavedUsername();
+
     await ref.read(secureStorageServiceProvider).clearAll();
     await ref.read(hiveCacheProvider).delete(_userSessionKey);
+    await ref.read(secureStorageServiceProvider).saveRememberMe(rememberMe, username);
     
     state = const AsyncData(LoginState(authResponse: null, isLoading: false));
+
   }
 }
 // ── Providers Globaux ─────────────────────────────────────────────────────────

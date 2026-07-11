@@ -28,7 +28,8 @@ class SField extends StatelessWidget {
     this.obscureText = false,
     this.validator,
     this.suffixIcon,
-    this.autofillHints,
+    this.autofillHints, 
+    this.readOnly = false, this.enabled = true,
   });
  
   final String label, hint;
@@ -41,6 +42,8 @@ class SField extends StatelessWidget {
   final String? Function(String?)? validator;
   final Widget? suffixIcon;
   final Iterable<String>? autofillHints;
+  final bool readOnly;
+  final bool enabled;
  
   @override
   Widget build(BuildContext context) {
@@ -60,6 +63,8 @@ class SField extends StatelessWidget {
           obscureText: obscureText,
           validator: validator,
           autofillHints: autofillHints,
+          readOnly: readOnly,
+          enabled: enabled,
           style: AppTextStyles.bodyMedium.copyWith(color: AppColors.neutral800),
           decoration: InputDecoration(
             filled: true,
@@ -101,13 +106,14 @@ class SPasswordField extends StatefulWidget {
     this.controller,
     this.validator,
     this.autofillHints = const [AutofillHints.password],
+    this.onChanged,
   });
 
   final String label, hint;
   final TextEditingController? controller;
   final String? Function(String?)? validator;
   final Iterable<String>? autofillHints;
-
+  final void Function(String?)? onChanged;
   @override
   State<SPasswordField> createState() => _SPasswordFieldState();
 }
@@ -133,6 +139,7 @@ class _SPasswordFieldState extends State<SPasswordField> {
         ),
         onPressed: () => setState(() => _isObscure = !_isObscure),
       ),
+      onChanged: widget.onChanged,
     );
   }
 }

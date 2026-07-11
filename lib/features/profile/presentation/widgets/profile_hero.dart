@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import '../../../../core/design_system/tokens/app_colors.dart';
 import '../../../../core/design_system/tokens/app_dimensions.dart';
 import '../../../../core/design_system/tokens/app_text_styles.dart';
-import '../../domain/entities/user_profile_entity.dart';
+import '../../domain/entities/applicant_entity.dart';
 
 class ProfileHero extends StatelessWidget {
-  const ProfileHero({super.key, required this.profile});
+  const ProfileHero({super.key, required this.applicant});
  
-  final UserProfileEntity profile;
+  final ApplicantEntity applicant;
  
   // Couleur sémantique par tag — conforme à la charte ANPEJ
   // Emploi salarié → vert, Formation → bleu, Migration → violet,
@@ -61,7 +61,7 @@ class ProfileHero extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    profile.initials,
+                    applicant.fullName.substring(0, 2).toUpperCase() ,
                     style: AppTextStyles.headingMedium.copyWith(
                       color: AppColors.white,
                       fontSize: 18,
@@ -91,7 +91,7 @@ class ProfileHero extends StatelessWidget {
  
             // Nom complet — blanc pur, typographie forte
             Text(
-              profile.fullName,
+              applicant.fullName,
               style: AppTextStyles.headingMedium.copyWith(
                 color: AppColors.darkTextPrimary,
                 letterSpacing: -0.4,
@@ -101,7 +101,7 @@ class ProfileHero extends StatelessWidget {
  
             // Téléphone · Localisation — blanc 60%
             Text(
-              '${profile.phone} · ${profile.location}',
+              '${applicant.user?.phone} · ${applicant.address}',
               style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.darkTextSecondary,
               ),
@@ -109,32 +109,32 @@ class ProfileHero extends StatelessWidget {
             const SizedBox(height: AppDimensions.sp14),
  
             // Tags sémantiques — couleurs ANPEJ par service
-            Wrap(
-              spacing: AppDimensions.sp6,
-              runSpacing: AppDimensions.sp6,
-              children: profile.tags.map((tag) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.sp10,
-                    vertical: AppDimensions.sp4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _tagBg(tag),
-                    borderRadius:
-                        BorderRadius.circular(AppDimensions.radiusFull),
-                    border: Border.all(color: _tagBorder(tag)),
-                  ),
-                  child: Text(
-                    tag,
-                    style: AppTextStyles.caption.copyWith(
-                      color: _tagColor(tag),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+            // Wrap(
+            //   spacing: AppDimensions.sp6,
+            //   runSpacing: AppDimensions.sp6,
+            //   children: applicant.tags.map((tag) {
+            //     return Container(
+            //       padding: const EdgeInsets.symmetric(
+            //         horizontal: AppDimensions.sp10,
+            //         vertical: AppDimensions.sp4,
+            //       ),
+            //       decoration: BoxDecoration(
+            //         color: _tagBg(tag),
+            //         borderRadius:
+            //             BorderRadius.circular(AppDimensions.radiusFull),
+            //         border: Border.all(color: _tagBorder(tag)),
+            //       ),
+            //       child: Text(
+            //         tag,
+            //         style: AppTextStyles.caption.copyWith(
+            //           color: _tagColor(tag),
+            //           fontSize: 10,
+            //           fontWeight: FontWeight.w600,
+            //         ),
+            //       ),
+            //     );
+            //   }).toList(),
+            // ),
           ],
         ),
       ),

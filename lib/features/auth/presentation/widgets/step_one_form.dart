@@ -9,6 +9,8 @@ import 'package:sime_v2/core/design_system/tokens/app_colors.dart';
 import 'package:sime_v2/core/design_system/tokens/app_dimensions.dart';
 import 'package:sime_v2/core/design_system/tokens/app_text_styles.dart';
 import 'package:sime_v2/core/design_system/widgets/app_form_fields.dart';
+import 'package:sime_v2/core/design_system/widgets/s_genre_tile.dart';
+import 'package:sime_v2/core/design_system/widgets/s_searchable_dropdown.dart';
 import 'package:sime_v2/core/providers/scan_result_provider.dart';
 import 'package:sime_v2/core/services/scanned_document.dart';
 import '../providers/registration_provider.dart';
@@ -92,13 +94,35 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
         );
   }
 
+  /// Nettoie les libellés géographiques mal encodés (mojibake)
+  String _cleanGeoName(String name) {
+    return name.replaceAll('RanÃ©rou', 'Ranérou').replaceAll('KÃ©dougou', 'Kédougou');
+  }
+
   @override
   Widget build(BuildContext context) {
     final formState = ref.watch(registrationNotifierProvider);
     final notifier = ref.read(registrationNotifierProvider.notifier);
 
-    // Détermination de l'activation du dropdown département
     final hasSelectedRegion = formState.residRegionId != 0;
+
+    // Résolution des objets sélectionnés à partir des IDs stockés dans le state
+    final selectedRegion = formState.regions
+        .where((r) => r.id == formState.residRegionId)
+        .firstOrNull;
+
+    // Départements filtrés pour la région active, comme dans la logique d'origine
+    final filteredDepartments = hasSelectedRegion
+        ? formState.departments.where((dept) => dept.region?.id == formState.residRegionId).toList()
+        : <dynamic>[];
+
+    final selectedDepartment = filteredDepartments
+        .where((d) => d.id == formState.residDepartmentId)
+        .firstOrNull;
+
+    final selectedNationality = formState.nationalities
+        .where((n) => n.id == formState.nationalityId)
+        .firstOrNull;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,18 +130,15 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Informations personnelles',
-                style: AppTextStyles.headingSmall),
+            const Text('Informations personnelles', style: AppTextStyles.headingSmall),
             IconButton(
-              icon: const Icon(Icons.document_scanner_outlined,
-                  color: AppColors.primary900),
+              icon: const Icon(Icons.document_scanner_outlined, color: AppColors.primary900),
               tooltip: 'Scanner la pièce d’identité',
               onPressed: () => context.push(AppRoutes.identityScanner),
             ),
           ],
         ),
-        const Text('Tous les champs * sont obligatoires',
-            style: AppTextStyles.bodySmall),
+        const Text('Tous les champs * sont obligatoires', style: AppTextStyles.bodySmall),
         const SizedBox(height: AppDimensions.sp24),
         Row(
           children: [
@@ -141,14 +162,12 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
           ],
         ),
         const SizedBox(height: AppDimensions.sp14),
-        Text('Genre *',
-            style:
-                AppTextStyles.labelSmall.copyWith(color: AppColors.neutral800)),
+        Text('Genre *', style: AppTextStyles.labelSmall.copyWith(color: AppColors.neutral800)),
         const SizedBox(height: AppDimensions.sp6),
         Row(
           children: [
             Expanded(
-              child: _GenreTile(
+              child: GenreTile(
                 label: 'Homme',
                 isSelected: formState.sex == 'HOMME',
                 onTap: () => notifier.updateField(sex: 'HOMME'),
@@ -156,7 +175,7 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
             ),
             const SizedBox(width: AppDimensions.sp12),
             Expanded(
-              child: _GenreTile(
+              child: GenreTile(
                 label: 'Femme',
                 isSelected: formState.sex == 'FEMME',
                 onTap: () => notifier.updateField(sex: 'FEMME'),
@@ -174,8 +193,7 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
                 selectedDate: _selectedDate,
                 onDateSelected: (date) {
                   setState(() => _selectedDate = date);
-                  notifier.updateField(
-                      dateBirth: DateFormat('yyyy-MM-dd').format(date));
+                  notifier.updateField(dateBirth: DateFormat('yyyy-MM-dd').format(date));
                 },
               ),
             ),
@@ -206,199 +224,49 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
         ),
         const SizedBox(height: AppDimensions.sp14),
 
-        // ─── BLOC RÉGIONS & DÉPARTEMENTS EN CASCADE ───
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Dropdown des Régions
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Région *',
-                      style: AppTextStyles.labelSmall
-                          .copyWith(color: AppColors.neutral800)),
-                  const SizedBox(height: AppDimensions.sp6),
-                  DropdownButtonFormField<int>(
-                    isExpanded: true, // 👈 Empêche l'overflow à droite
-                    value: formState.regions
-                            .any((r) => r.id == formState.residRegionId)
-                        ? formState.residRegionId
-                        : null,
-                    hint: const Text('Sélectionner',
-                        style: TextStyle(fontSize: 13),
-                        overflow: TextOverflow.ellipsis),
-                    decoration: _buildDropdownDecoration(),
-                    items: formState.regions.map((region) {
-                      return DropdownMenuItem<int>(
-                        value: region.id,
-                        child: Text(
-                          region.name,
-                          style: const TextStyle(fontSize: 13),
-                          overflow:
-                              TextOverflow.ellipsis, // 👈 Tronque proprement
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) notifier.onRegionChanged(value);
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppDimensions.sp12),
-
-            // Dropdown des Départements
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Département *',
-                      style: AppTextStyles.labelSmall
-                          .copyWith(color: AppColors.neutral800)),
-                  const SizedBox(height: AppDimensions.sp6),
-                  DropdownButtonFormField<int>(
-                    isExpanded: true, // 👈 Empêche l'overflow à droite
-                    value: formState.departments.any((d) =>
-                            d.id == formState.residDepartmentId &&
-                            (d.region?.id == formState.residRegionId ||
-                                formState.residRegionId == 0))
-                        ? formState.residDepartmentId
-                        : null,
-                    hint: const Text('Sélectionner',
-                        style: TextStyle(fontSize: 13),
-                        overflow: TextOverflow.ellipsis),
-                    disabledHint: const Text('Choisir région',
-                        style: TextStyle(
-                            color: AppColors.neutral400, fontSize: 13)),
-                    decoration:
-                        _buildDropdownDecoration(isEnabled: hasSelectedRegion),
-                    // Côté client : On filtre pour s'assurer qu'aucun département parasite d'une autre région ne s'affiche
-                    items: hasSelectedRegion
-                        ? formState.departments
-                            .where((dept) =>
-                                dept.region?.id ==
-                                formState
-                                    .residRegionId) // 👈 Sécurité de filtrage local
-                            .map((dept) {
-                            return DropdownMenuItem<int>(
-                              value: dept.id,
-                              child: Text(
-                                // Optionnel : correction à la volée des caractères cassés si nécessaire, ex: .replaceAll('RanÃ©rou', 'Ranérou')
-                                dept.name
-                                    .replaceAll('RanÃ©rou', 'Ranérou')
-                                    .replaceAll('KÃ©dougou', 'Kédougou'),
-                                style: const TextStyle(fontSize: 13),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            );
-                          }).toList()
-                        : null,
-                    onChanged: hasSelectedRegion
-                        ? (value) {
-                            if (value != null) {
-                              notifier.onDepartmentChanged(value);
-                            }
-                          }
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-          ],
+        // ─── RÉGION ───
+        SSearchableDropdown<dynamic>(
+          label: 'Région *',
+          pickerTitle: 'Sélectionner une région',
+          searchHint: 'Rechercher une région...',
+          leadingIcon: Icons.map_outlined,
+          value: selectedRegion != null ? _cleanGeoName(selectedRegion.name) : '',
+          currentValue: selectedRegion,
+          options: formState.regions,
+          labelExtractor: (region) => _cleanGeoName(region.name),
+          onSelected: (region) => notifier.onRegionChanged(region.id),
         ),
         const SizedBox(height: AppDimensions.sp14),
 
-        // ─── DROPDOWN NATIONALITÉS ───
-        Text('Nationalité *',
-            style:
-                AppTextStyles.labelSmall.copyWith(color: AppColors.neutral800)),
-        const SizedBox(height: AppDimensions.sp6),
-        DropdownButtonFormField<int>(
-          initialValue: formState.nationalities
-                  .any((n) => n.id == formState.nationalityId)
-              ? formState.nationalityId
-              : null,
-          hint: const Text('Sélectionner votre nationalité',
-              style: TextStyle(fontSize: 14)),
-          decoration: _buildDropdownDecoration(),
-          items: formState.nationalities.map((nationality) {
-            return DropdownMenuItem<int>(
-              value: nationality.id,
-              child:
-                  Text(nationality.name, style: const TextStyle(fontSize: 14)),
-            );
-          }).toList(),
-          onChanged: (value) {
-            if (value != null) notifier.updateField(nationalityId: value);
-          },
+        // ─── DÉPARTEMENT (dépend de la région) ───
+        SSearchableDropdown<dynamic>(
+          label: 'Département *',
+          pickerTitle: 'Sélectionner un département',
+          searchHint: 'Rechercher un département...',
+          leadingIcon: Icons.location_city_outlined,
+          enabled: hasSelectedRegion,
+          disabledHint: 'Choisir une région d\'abord',
+          value: selectedDepartment != null ? _cleanGeoName(selectedDepartment.name) : '',
+          currentValue: selectedDepartment,
+          options: filteredDepartments,
+          labelExtractor: (dept) => _cleanGeoName(dept.name),
+          onSelected: (dept) => notifier.onDepartmentChanged(dept.id),
+        ),
+        const SizedBox(height: AppDimensions.sp14),
+
+        // ─── NATIONALITÉ ───
+        SSearchableDropdown<dynamic>(
+          label: 'Nationalité *',
+          pickerTitle: 'Sélectionner une nationalité',
+          searchHint: 'Rechercher une nationalité...',
+          leadingIcon: Icons.flag_outlined,
+          value: selectedNationality != null ? selectedNationality.name : '',
+          currentValue: selectedNationality,
+          options: formState.nationalities,
+          labelExtractor: (nationality) => nationality.name,
+          onSelected: (nationality) => notifier.updateField(nationalityId: nationality.id),
         ),
       ],
-    );
-  }
-
-  /// Décoration unifiée calquée sur tes tokens graphiques ANPEJ
-  InputDecoration _buildDropdownDecoration({bool isEnabled = true}) {
-    return InputDecoration(
-      filled: true,
-      isDense: true, // 👈 Force un layout compact et propre
-      fillColor: isEnabled ? AppColors.neutral50 : AppColors.neutral100,
-      contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.sp12, vertical: 10),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-        borderSide: const BorderSide(
-            color: AppColors.border, width: AppDimensions.borderThin),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-        borderSide: const BorderSide(
-            color: AppColors.secondary600, width: AppDimensions.borderMedium),
-      ),
-      disabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-        borderSide: const BorderSide(
-            color: AppColors.border, width: AppDimensions.borderThin),
-      ),
-    );
-  }
-}
-
-class _GenreTile extends StatelessWidget {
-  const _GenreTile(
-      {required this.label, required this.isSelected, required this.onTap});
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: AppDimensions.inputHeight,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.secondary800 : AppColors.white,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-          border: Border.all(
-            color: isSelected ? AppColors.secondary800 : AppColors.border,
-            width: isSelected
-                ? AppDimensions.borderMedium
-                : AppDimensions.borderThin,
-          ),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: isSelected ? AppColors.white : AppColors.neutral600,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
-      ),
     );
   }
 }

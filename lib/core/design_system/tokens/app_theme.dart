@@ -455,6 +455,8 @@ abstract final class AppTheme {
         size: AppDimensions.iconMD,
       ),
     );
+
+    
   }
 
   // ── Dark theme ───────────────────────────────────────────────────────────
@@ -521,4 +523,6 @@ abstract final class AppTheme {
 
   static void applyLightStatusBar() =>
       SystemChrome.setSystemUIOverlayStyle(lightStatusBar);
+
+      
 }

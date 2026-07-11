@@ -7,6 +7,13 @@ class ReferenceRemoteDataSource {
   ReferenceRemoteDataSource(this._apiClient);
 
   /// Récupère la liste globale des pays
+  Future<List<ReferenceModel>> getReferenceList(String name) async {
+    final response = await _apiClient.dio.get('/param/api/$name');
+    // Extraction via ['data']
+    return _parseList(response.data['data']);
+  }
+
+  /// Récupère la liste globale des pays
   Future<List<CountryModel>> getCountries() async {
     final response = await _apiClient.dio.get('/param/api/countries');
     // Extraction via ['data']
@@ -38,12 +45,22 @@ class ReferenceRemoteDataSource {
   }
 
   /// Récupère les communes filtrées par l'ID du département
-  Future<List<ReferenceModel>> getMunicipalities(int departmentId) async {
+  Future<List<MunicipalityModel>> getMunicipalities(int departmentId) async {
     final response = await _apiClient.dio.get(
       '/param/api/municipalities',
       queryParameters: {'departmentId': departmentId},
     );
     // Extraction via ['data']
+    return _parseMunicipalityList(response.data['data']);
+  }
+
+  Future<List<ReferenceModel>> getEducationLevels() async {
+    final response = await _apiClient.dio.get('/param/api/education-levels'); // Ajuste l'URL du backend
+    return _parseList(response.data['data']);
+  }
+
+  Future<List<ReferenceModel>> getFieldsOfStudy() async {
+    final response = await _apiClient.dio.get('/param/api/field-activities'); // Ajuste l'URL du backend
     return _parseList(response.data['data']);
   }
 
@@ -72,6 +89,13 @@ class ReferenceRemoteDataSource {
   List<DepartmentModel> _parseDepartmentList(dynamic dataList) {
     if (dataList is List) {
       return dataList.map((json) => DepartmentModel.fromJson(json)).toList();
+    }
+    return [];
+  }
+
+List<MunicipalityModel> _parseMunicipalityList(dynamic dataList) {
+    if (dataList is List) {
+      return dataList.map((json) => MunicipalityModel.fromJson(json)).toList();
     }
     return [];
   }

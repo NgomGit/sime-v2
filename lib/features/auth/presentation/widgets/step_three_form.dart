@@ -72,11 +72,11 @@ class _StepThreeFormState extends ConsumerState<StepThreeForm> {
           onChanged: (val) => notifier.updateField(username: val),
         ),
         const SizedBox(height: AppDimensions.sp14),
-        SField(
+        SPasswordField(
           controller: _passwordController,
           label: 'Mot de passe *',
           hint: '••••••••••••',
-          obscureText: true,
+
           onChanged: (val) => notifier.updateField(password: val),
         ),
       ],

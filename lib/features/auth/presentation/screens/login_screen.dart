@@ -211,7 +211,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const SizedBox(height: AppDimensions.sp16),
                         SField(
                           label: 'Nom d\'utilisateur *',
-                          hint: 'Ex: rahma.ngom',
+                          hint: 'Ex: user.name',
                           controller: _usernameController,
                           keyboardType: TextInputType.name,
                           autofillHints: const [AutofillHints.username],

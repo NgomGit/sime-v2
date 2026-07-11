@@ -1,9 +1,10 @@
+// features/profile/presentation/screens/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sime_v2/core/const/app_routes.dart';
 import 'package:sime_v2/features/auth/presentation/providers/login_provider.dart';
-import 'package:sime_v2/features/profile/presentation/providers/user_profile_provider.dart';
+import 'package:sime_v2/features/profile/presentation/providers/applicant_notifier.dart';
 import 'package:sime_v2/features/profile/presentation/widgets/info_section_card.dart';
 import 'package:sime_v2/features/profile/presentation/widgets/profile_hero.dart';
 import 'package:sime_v2/features/profile/presentation/widgets/profile_menu_card.dart';
@@ -12,30 +13,131 @@ import '../../../../core/design_system/tokens/app_dimensions.dart';
 import '../../../../core/design_system/tokens/app_text_styles.dart';
 import '../../../../core/design_system/widgets/s_card.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
- 
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(profileNotifierProvider);
- 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: profileAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.secondary800),
-        ),
-        error: (err, _) => Center(
-          child: Text(
-            'Erreur de chargement: $err',
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.neutral500),
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Déclenche le chargement initial dès que le premier frame de l'UI est dessiné
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(applicantNotifierProvider.notifier).loadProfile();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profileState = ref.watch(applicantNotifierProvider);
+    final applicant = profileState.applicant;
+
+    // 1. Écran d'erreur bloquant : Pas de cache + Échec de chargement/parsing
+    if (profileState.errorMessage != null &&
+        applicant == null &&
+        !profileState.isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.wifi_off_rounded,
+                  color: AppColors.error,
+                  size: 48,
+                ),
+                const SizedBox(height: AppDimensions.sp14),
+                Text(
+                  'Connexion impossible',
+                  style: AppTextStyles.headingSmall
+                      .copyWith(color: AppColors.neutral800),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  profileState.errorMessage ??
+                      'Une erreur de chargement est survenue.',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodyMedium
+                      .copyWith(color: AppColors.neutral500),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => ref
+                      .read(applicantNotifierProvider.notifier)
+                      .loadProfile(),
+                  child: const Text('Réessayer'),
+                ),
+              ],
+            ),
           ),
         ),
-        data: (profile) => CustomScrollView(
+      );
+    }
+
+    // 2. Écran de chargement initial plein écran
+    if (profileState.isLoading && applicant == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.secondary800),
+        ),
+      );
+    }
+
+    // Sécurité au cas où l'état initial sans chargement n'a pas encore d'applicant
+    if (applicant == null) return const SizedBox.shrink();
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: RefreshIndicator(
+        color: AppColors.secondary800,
+        onRefresh: () =>
+            ref.read(applicantNotifierProvider.notifier).loadProfile(),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            // Hero sombre — fond darkSurface cohérent avec toute l'app
-            SliverToBoxAdapter(child: ProfileHero(profile: profile)),
- 
+            // ── PROFILE HERO REPLACÉ EN HAUT ──
+            SliverToBoxAdapter(
+              child: ProfileHero(
+                applicant: applicant,
+              ),
+            ),
+
+            // Bandeau d'avertissement non bloquant si erreur réseau mais cache présent
+            if (profileState.errorMessage != null)
+              SliverToBoxAdapter(
+                child: Container(
+                  color: AppColors.error.withValues(alpha: 0.1),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: AppDimensions.pagePaddingH,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.signal_wifi_connected_no_internet_4_rounded,
+                        color: AppColors.error,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Mode hors-ligne : Impossible d\'actualiser les données.',
+                          style: AppTextStyles.bodySmall
+                              .copyWith(color: AppColors.error),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             SliverPadding(
               padding: const EdgeInsets.only(
                 left: AppDimensions.pagePaddingH,
@@ -50,11 +152,19 @@ class ProfileScreen extends ConsumerWidget {
                     onEditTap: () =>
                         context.push(AppRoutes.editPersonalProfile),
                     rows: [
-                      ('Nom complet',       profile.fullName),
-                      ('Date de naissance', '${profile.birthDate} · 26 ans'),
-                      ('CIN',               profile.cin),
-                      ('Nationalité',       profile.nationality),
-                      ('Adresse',           profile.location),
+                      ('Nom complet', applicant.fullName),
+                      (
+                        'Date de naissance',
+                        '${applicant.dateBirth.isNotEmpty ? applicant.dateBirth : '—'} · ${applicant.age} ans'
+                      ),
+                      ('CIN / Passeport', applicant.cni),
+                      ('Nationalité', applicant.nationality?.name ?? 'Sénégalaise'),
+                      (
+                        'Adresse',
+                        applicant.address.isNotEmpty
+                            ? applicant.address
+                            : 'Non renseignée'
+                      ),
                     ],
                   ),
                   const SizedBox(height: AppDimensions.sp10),
@@ -63,18 +173,27 @@ class ProfileScreen extends ConsumerWidget {
                     onEditTap: () =>
                         context.push(AppRoutes.editProfessionalProfile),
                     rows: [
-                      ("Niveau d'étude", profile.studyLevel),
-                      ('Domaine',        profile.domain),
-                      ('Expérience',     profile.experience),
-                      ('Dernier diplôme', profile.lastDegree),
+                      (
+                        "Niveau d'étude",
+                        applicant.educationLevel?.name ?? 'Non renseigné'
+                      ),
+                      (
+                        'Domaine d\'études',
+                        applicant.fieldStudy?.name ?? 'Non renseigné'
+                      ),
+                      (
+                        'Dernier diplôme',
+                        applicant.lastDegreeObtained?.name ?? 'Non renseigné'
+                      ),
+                      (
+                        'Conseiller ANPEJ',
+                        applicant.hasAdvisor ? 'Assigné' : 'Non assigné'
+                      ),
                     ],
                   ),
                   const SizedBox(height: AppDimensions.sp10),
                   const ProfileMenuCard(),
                   const SizedBox(height: AppDimensions.sp14),
- 
-                  // Déconnexion — action destructive signalée par rouge texte/icône
-                  // Pas de fond rouge : l'action est rare, pas urgente
                   GestureDetector(
                     onTap: () => _onLogoutTap(context, ref),
                     child: SCard(
@@ -106,12 +225,8 @@ class ProfileScreen extends ConsumerWidget {
       ),
     );
   }
-  
+
   void _onLogoutTap(BuildContext context, WidgetRef ref) {
-    // 1. On redirige d'abord l'utilisateur pour quitter l'espace sécurisé
-    context.go(AppRoutes.login);
-    
-    // 2. On nettoie l'état d'authentification juste après
     ref.read(loginNotifierProvider.notifier).logout();
   }
 }
