@@ -1,7 +1,11 @@
 // features/auth/data/repositories/auth_repository_impl.dart
+import 'package:dartz/dartz.dart';
+import 'package:sime_v2/core/error/failures.dart';
 import 'package:sime_v2/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:sime_v2/features/auth/data/models/auth_response_model.dart';
 import 'package:sime_v2/features/auth/domain/entities/registration_entity.dart';
+import 'package:sime_v2/features/profile/data/models/applicant_model.dart';
+import 'package:sime_v2/features/profile/domain/entities/applicant_entity.dart';
 
 import '../../domain/repositories/auth_repository.dart';
 
@@ -34,5 +38,11 @@ class AuthRepositoryImpl implements AuthRepository {
     return responseModel;
   }
 
+  @override
+Future<Either<Failure, ApplicantEntity>> updateUserAccount(Map<String, dynamic> payload) async {
+  final json = await _remoteDataSource.updateAuthUser(payload);
+  return Right(ApplicantModel.fromJson(json));
+ 
+}
   
 }

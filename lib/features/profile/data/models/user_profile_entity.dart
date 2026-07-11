@@ -40,6 +40,7 @@ class UserProfileModel extends UserProfileEntity {
       avatarUrl: json['avatar_url'] as String?,
     );
   }
+  
 
   Map<String, dynamic> toJson() {
     return {

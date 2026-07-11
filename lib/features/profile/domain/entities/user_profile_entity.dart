@@ -67,6 +67,7 @@ class UserProfileEntity {
     );
   }
 
+
   String get fullName => '$firstName $lastName';
   
   String get initials {
