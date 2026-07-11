@@ -8,6 +8,7 @@ import 'package:sime_v2/core/const/app_routes.dart';
 import 'package:sime_v2/core/design_system/tokens/app_colors.dart';
 import 'package:sime_v2/core/design_system/tokens/app_text_styles.dart';
 import 'package:sime_v2/core/providers/auth_check_provider.dart';
+import 'package:sime_v2/core/providers/first_launch_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -106,26 +107,38 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _listenToAuthCheck();
   }
 
-  void _listenToAuthCheck() {
-    ref.listenManual(
-      authCheckProvider,
-      (previous, next) async {
-        if (next.hasValue) {
-          await Future.delayed(const Duration(milliseconds: 1800));
-          if (!mounted) return;
+  // features/auth/presentation/screens/splash_screen.dart
 
-          final status = next.requireValue;
-          if (status == AuthStatus.authenticated) {
-            context.go(AppRoutes.dashboard);
+void _listenToAuthCheck() {
+  ref.listenManual(
+    authCheckProvider,
+    (previous, next) async {
+      if (next.hasValue) {
+        // Laisse l'animation du Splash Screen se dérouler fluidement
+        await Future.delayed(const Duration(milliseconds: 1800));
+        if (!mounted) return;
+
+        final status = next.requireValue;
+
+        if (status == AuthStatus.authenticated) {
+          context.go(AppRoutes.dashboard);
+        } else {
+          // 🔎 Vérification s'il s'agit du tout premier lancement de l'application
+          final isFirstLaunchAsync = ref.read(isFirstLaunchProvider);
+          
+          final isFirstLaunch = isFirstLaunchAsync.value ?? true;
+
+          if (isFirstLaunch) {
+            context.go('/onboarding');
           } else {
             context.go(AppRoutes.login);
           }
         }
-      },
-      fireImmediately:
-          true, // ← gère le cas où la valeur est déjà résolue au moment de l'écoute
-    );
-  }
+      }
+    },
+    fireImmediately: true,
+  );
+}
 
   @override
   void dispose() {
