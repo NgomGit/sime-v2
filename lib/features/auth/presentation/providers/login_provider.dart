@@ -46,7 +46,9 @@ class LoginNotifier extends AsyncNotifier<LoginState> {
 
       // 1. Sauvegarde des tokens dans le stockage sécurisé matériel
       await ref.read(secureStorageServiceProvider).writeToken( authResponse.token);
-      // 2. Sauvegarde du profil complet dans la box Hive chiffrée en AES-256
+       // 2. Save remember me preference and username if applicable
+      await ref.read(secureStorageServiceProvider).saveRememberMe( rememberMe, username);
+      // 3. Sauvegarde du profil complet dans la box Hive chiffrée en AES-256
       await ref.read(hiveCacheProvider).put(_userSessionKey, authResponse.toJson());
 
       state = AsyncData(LoginState(authResponse: authResponse, isLoading: false));
