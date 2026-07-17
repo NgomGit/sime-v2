@@ -48,7 +48,7 @@ class InfoSectionCard extends StatelessWidget {
                     const SizedBox(width: 3),
                     Text(
                       'Modifier',
-                      style: AppTextStyles.caption.copyWith(
+                      style: AppTextStyles.labelSmall.copyWith(
                         color: AppColors.primary600,
                         fontWeight: FontWeight.w600,
                       ),

@@ -31,20 +31,18 @@ final applicantLocalDataSourceProvider = Provider<ApplicantLocalDataSource>((ref
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Provider du Répertoire lié au contrat abstrait du Domain
+///
+/// NB : la synchronisation automatique au retour du réseau est déclenchée
+/// depuis `applicantNotifierProvider` (features/profile/presentation/
+/// providers/applicant_notifier.dart) plutôt qu'ici, afin que l'état exposé
+/// à l'UI (`ApplicantState.isSyncing`, profil rafraîchi) reste synchronisé
+/// avec la synchronisation réellement déclenchée. Ne pas dupliquer l'appel
+/// à `synchronizeOfflineData()` ici pour éviter une double synchronisation.
 final applicantRepositoryProvider = Provider<ApplicantRepository>((ref) {
-  final repository = ApplicantRepositoryImpl(
+  return ApplicantRepositoryImpl(
     remoteDataSource: ref.read(applicantRemoteDataSourceProvider),
     localDataSource: ref.read(applicantLocalDataSourceProvider),
     networkInfo: ref.read(networkInfoProvider),
     cache: ref.read(hiveCacheProvider),
   );
-
-  // Écouteur réactif pour la synchronisation automatique dès le retour du réseau
-  ref.listen<AsyncValue<bool>>(connectivityStreamProvider, (previous, next) {
-    if (next.value == true) {
-      repository.synchronizeOfflineData();
-    }
-  });
-
-  return repository;
 });

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/const/app_routes.dart';
 import '../../../../core/design_system/tokens/app_colors.dart';
 import '../../../../core/design_system/tokens/app_dimensions.dart';
 import '../../../../core/design_system/tokens/app_text_styles.dart';
@@ -71,18 +73,21 @@ class ProfileHero extends StatelessWidget {
                 const Spacer(),
                 // Bouton éditer — fond translucide blanc sur fond sombre
                 // Pattern identique au bouton retour de l'onboarding
-                Container(
-                  width: 32, height: 32,
-                  decoration: BoxDecoration(
-                    color: AppColors.darkBorder,
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                    border: Border.all(color: AppColors.darkBorder),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.edit_outlined,
-                    size: 14,
-                    color: AppColors.darkTextPrimary,
+                GestureDetector(
+                  onTap: () => context.push(AppRoutes.editPersonalProfile),
+                  child: Container(
+                    width: 32, height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.darkBorder,
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                      border: Border.all(color: AppColors.darkBorder),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.edit_outlined,
+                      size: 14,
+                      color: AppColors.darkTextPrimary,
+                    ),
                   ),
                 ),
               ],

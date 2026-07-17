@@ -14,5 +14,7 @@ class AppRoutes {
   static const dossier = '/dossier';
   static const profil = '/profil';
   static const editPersonalProfile = '/profil/edit-personal';
+  static const editIdentityInformations = '/profil/edit-identity';
+  static const editIdentityDocument = '/profil/edit-identity-document';
   static const editProfessionalProfile = '/profil/edit-professional';
 }

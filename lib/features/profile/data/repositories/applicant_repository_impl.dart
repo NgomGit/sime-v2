@@ -1,8 +1,10 @@
 // features/profile/data/repositories/applicant_repository_impl.dart
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:sime_v2/core/error/failures.dart';
 import 'package:sime_v2/core/network/network_info.dart';
 import 'package:sime_v2/core/storage/hive_cache.dart';
+import 'package:sime_v2/core/utils/json_sanitizer.dart';
 import 'package:sime_v2/core/utils/offline_first_mixin.dart';
 import 'package:sime_v2/features/profile/data/datasources/applicant_local_datasource.dart';
 import 'package:sime_v2/features/profile/data/datasources/applicant_remote_datasource.dart';
@@ -44,6 +46,19 @@ class ApplicantRepositoryImpl with OfflineFirstMixin implements ApplicantReposit
 
   @override
   Future<Either<Failure, void>> updateApplicantProfile(int id, Map<String, dynamic> fieldsToUpdate) async {
+    // 🛡️ Hive n'accepte que des types JSON-safe (primitifs, List, Map) ou des
+    // adapters explicitement enregistrés. `fieldsToUpdate` peut en théorie
+    // contenir une entité/modèle Dart brut glissée par erreur par l'appelant
+    // (ça a déjà causé un `HiveError: Cannot write, unknown type: ...` sur
+    // `identities`) : on sanitize donc systématiquement AVANT toute écriture
+    // en cache hors-ligne, avec la même fonction que celle utilisée avant
+    // l'envoi réseau (voir ApplicantRemoteDataSourceImpl), pour que les deux
+    // chemins restent protégés de façon identique.
+    final safeFieldsToUpdate = sanitizeForTransport(
+      fieldsToUpdate,
+      onUnsupported: (message) => debugPrint('⚠️ $message'),
+    );
+
     if (await networkInfo.isConnected) {
       final result = await remoteOnly<void>(() async {
         await remoteDataSource.updateApplicantProfile(id, fieldsToUpdate);
@@ -52,18 +67,18 @@ class ApplicantRepositoryImpl with OfflineFirstMixin implements ApplicantReposit
       return result.fold(
         (failure) async {
           // Si l'appel distant échoue malgré la détection réseau, on bascule en stockage local temporel
-          await localDataSource.saveOfflineUpdate(id, fieldsToUpdate);
+          await localDataSource.saveOfflineUpdate(id, safeFieldsToUpdate);
           return const Right(null);
         },
         (success) async {
           await invalidate('applicant_me_profile');
-          await getApplicantProfile(); 
+          await getApplicantProfile();
           return const Right(null);
         },
       );
     } else {
       // Pas de réseau : File d'attente locale silencieuse
-      await localDataSource.saveOfflineUpdate(id, fieldsToUpdate);
+      await localDataSource.saveOfflineUpdate(id, safeFieldsToUpdate);
       return const Right(null);
     }
   }

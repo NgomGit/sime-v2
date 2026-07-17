@@ -5,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:sime_v2/core/design_system/tokens/app_colors.dart';
 import 'package:sime_v2/core/design_system/tokens/app_dimensions.dart';
 import 'package:sime_v2/core/design_system/tokens/app_text_styles.dart';
-import 'package:sime_v2/core/design_system/widgets/app_form_fields.dart';
+import 'package:sime_v2/core/design_system/widgets/app_status_dialog.dart';
+import 'package:sime_v2/core/design_system/widgets/s_app_back_button.dart';
 import 'package:sime_v2/core/design_system/widgets/s_button.dart';
 import 'package:sime_v2/core/design_system/widgets/s_overlay_loader.dart';
 import 'package:sime_v2/core/design_system/widgets/s_searchable_dropdown.dart';
@@ -28,7 +29,7 @@ class _EditProfessionalProfileScreenState
   int? _selectedEducationLevelId;
   int? _selectedFieldOfStudyId;
   String _selectedExperience = 'Choisir';
-  String _selectedLastDegree = '';
+  int? _selectedLastDegreeId;
 
   bool _isLoading = false;
 
@@ -40,7 +41,7 @@ class _EditProfessionalProfileScreenState
     if (applicant != null) {
       _selectedEducationLevelId = applicant.educationLevel?.id;
       _selectedFieldOfStudyId = applicant.fieldStudy?.id;
-      _selectedLastDegree = applicant.lastDegreeObtained?.id.toString() ?? '';
+      _selectedLastDegreeId = applicant.lastDegreeObtained?.id;
     }
   }
 
@@ -49,50 +50,38 @@ class _EditProfessionalProfileScreenState
 
     setState(() => _isLoading = true);
 
-    final refState = ref.read(profileReferencesNotifierProvider);
-
-    final targetEducationLevel = refState.educationLevels.firstWhere(
-      (e) => e.id == _selectedEducationLevelId,
-      orElse: () => ReferenceEntity(id: _selectedEducationLevelId ?? 0, name: ''),
-    );
-
-    final targetFieldStudy = refState.fieldsOfStudy.firstWhere(
-      (f) => f.id == _selectedFieldOfStudyId,
-      orElse: () => ReferenceEntity(id: _selectedFieldOfStudyId ?? 0, name: ''),
-    );
-
     // ── Payload réseau : uniquement des types JSON-safe ──
     final Map<String, dynamic> fieldsToUpdate = {
       'educationLevelId': _selectedEducationLevelId,
       'fieldStudyId': _selectedFieldOfStudyId,
       'experience': _selectedExperience,
-      'lastDegreeObtained': _selectedLastDegree.trim(),
+      'lastDegreeObtainedId': _selectedLastDegreeId,
     };
 
-    final success = await ref.read(applicantNotifierProvider.notifier).updateProfileFields(
-          fieldsToUpdate,
-          optimisticEducationLevel: targetEducationLevel,
-          optimisticFieldStudy: targetFieldStudy,
-        );
+    // Le profil est rechargé automatiquement par le notifier après succès,
+    // pas besoin de reconstruire un état "optimiste" ici.
+    final success = await ref
+        .read(applicantNotifierProvider.notifier)
+        .updateProfileFields(fieldsToUpdate);
 
     if (mounted) {
       setState(() => _isLoading = false);
 
       if (success) {
-        context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profil professionnel mis à jour'),
-            backgroundColor: AppColors.primary900,
-          ),
+        AppStatusDialog.show(
+          context,
+          title: 'Profil mis à jour',
+          message: 'Profil professionnel mis à jour avec succès',
+          type: StatusDialogType.success,
+          onConfirm: () => context.pop(),
         );
       } else {
         final errorMessage = ref.read(applicantNotifierProvider).errorMessage;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage ?? 'Erreur lors de la mise à jour'),
-            backgroundColor: AppColors.error,
-          ),
+        AppStatusDialog.show(
+          context,
+          title: 'Mise à jour impossible',
+          message: errorMessage ?? 'Erreur lors de la mise à jour',
+          type: StatusDialogType.error,
         );
       }
     }
@@ -104,6 +93,11 @@ class _EditProfessionalProfileScreenState
 
     final currentLevelEntity = refState.educationLevels.firstWhere(
       (e) => e.id == _selectedEducationLevelId,
+      orElse: () => const ReferenceEntity(id: 0, name: 'Sélectionner'),
+    );
+
+    final lastDegreeEntity = refState.educationLevels.firstWhere(
+      (e) => e.id == _selectedLastDegreeId,
       orElse: () => const ReferenceEntity(id: 0, name: 'Sélectionner'),
     );
 
@@ -120,27 +114,11 @@ class _EditProfessionalProfileScreenState
           backgroundColor: AppColors.white,
           elevation: 0,
           leadingWidth: 56,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: AppDimensions.sp16),
-            child: GestureDetector(
-              onTap: () => context.pop(),
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.neutral50,
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.arrow_back,
-                  size: AppDimensions.iconSM,
-                  color: AppColors.neutral800,
-                ),
-              ),
-            ),
+          leading: AppBackButton(
+            onPressed: () => context.pop(),
           ),
-          title: const Text('Profil professionnel', style: AppTextStyles.headingSmall),
+          title: const Text('Profil professionnel',
+              style: AppTextStyles.headingSmall),
           centerTitle: false,
         ),
         body: SafeArea(
@@ -170,7 +148,8 @@ class _EditProfessionalProfileScreenState
                                 value: currentLevelEntity.name,
                                 options: refState.educationLevels,
                                 currentValue: refState.educationLevels.any(
-                                        (e) => e.id == _selectedEducationLevelId)
+                                        (e) =>
+                                            e.id == _selectedEducationLevelId)
                                     ? currentLevelEntity
                                     : null,
                                 labelExtractor: (e) => e.name,
@@ -179,26 +158,27 @@ class _EditProfessionalProfileScreenState
                               ),
                             ),
                             const SizedBox(width: AppDimensions.sp12),
+                            // Niveau d'étude
 
-                            // Expérience
-                            Expanded(
-                              child: SSearchableDropdown<String>(
-                                label: 'Expérience *',
-                                pickerTitle: "Niveau d'expérience",
-                                value: _selectedExperience,
-                                options: const [
-                                  'Choisir',
-                                  'Débutant',
-                                  "3 ans d'expérience",
-                                  'Sénior'
-                                ],
-                                currentValue: _selectedExperience,
-                                labelExtractor: (val) => val,
-                                searchHint: 'Filtrer l\'expérience...',
-                                onSelected: (val) =>
-                                    setState(() => _selectedExperience = val),
-                              ),
-                            ),
+                            // // Expérience
+                            // Expanded(
+                            //   child: SSearchableDropdown<String>(
+                            //     label: 'Expérience *',
+                            //     pickerTitle: "Niveau d'expérience",
+                            //     value: _selectedExperience,
+                            //     options: const [
+                            //       'Choisir',
+                            //       'Débutant',
+                            //       "3 ans d'expérience",
+                            //       'Sénior'
+                            //     ],
+                            //     currentValue: _selectedExperience,
+                            //     labelExtractor: (val) => val,
+                            //     searchHint: 'Filtrer l\'expérience...',
+                            //     onSelected: (val) =>
+                            //         setState(() => _selectedExperience = val),
+                            //   ),
+                            // ),
                           ],
                         ),
                         const SizedBox(height: AppDimensions.sp14),
@@ -206,7 +186,7 @@ class _EditProfessionalProfileScreenState
                         // Domaine d'activité
                         SSearchableDropdown<ReferenceEntity>(
                           label: 'Domaine de formation *',
-                          pickerTitle: "Rechercher un domaine d'activité",
+                          pickerTitle: "Rechercher un domaine de formation",
                           searchHint: "Ex: Pêche, Services, Informatique...",
                           value: currentFieldEntity.name,
                           options: refState.fieldsOfStudy,
@@ -219,16 +199,29 @@ class _EditProfessionalProfileScreenState
                               setState(() => _selectedFieldOfStudyId = val.id),
                         ),
                         const SizedBox(height: AppDimensions.sp14),
-
-                        // Dernier diplôme obtenu
-                        SField(
-                          label: 'Dernier diplôme obtenu *',
-                          hint: 'Ex: Licence en Informatique, BTS, etc.',
-                          controller: TextEditingController(text: _selectedLastDegree)
-                            ..selection = TextSelection.fromPosition(
-                                TextPosition(offset: _selectedLastDegree.length)),
-                          onChanged: (val) => _selectedLastDegree = val,
+                        SSearchableDropdown<ReferenceEntity>(
+                          label: "Dernier diplôme *",
+                          pickerTitle: "Sélectionner un niveau d'étude",
+                          value: lastDegreeEntity.name,
+                          options: refState.educationLevels,
+                          currentValue: refState.educationLevels
+                                  .any((e) => e.id == _selectedLastDegreeId)
+                              ? lastDegreeEntity
+                              : null,
+                          labelExtractor: (e) => e.name,
+                          onSelected: (val) =>
+                              setState(() => _selectedLastDegreeId = val.id),
                         ),
+
+                        // // Dernier diplôme obtenu
+                        // SField(xww
+                        //   label: 'Dernier diplôme obtenu *',
+                        //   hint: 'Ex: Licence en Informatique, BTS, etc.',
+                        //   controller: TextEditingController(text: _selectedLastDegree)
+                        //     ..selection = TextSelection.fromPosition(
+                        //         TextPosition(offset: _selectedLastDegree.length)),
+                        //   onChanged: (val) => _selectedLastDegree = val,
+                        // ),
                       ],
                     ),
                   ),

@@ -150,14 +150,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   InfoSectionCard(
                     title: 'Informations personnelles',
                     onEditTap: () =>
-                        context.push(AppRoutes.editPersonalProfile),
+                        context.push(AppRoutes.editIdentityInformations),
                     rows: [
                       ('Nom complet', applicant.fullName),
                       (
                         'Date de naissance',
                         '${applicant.dateBirth.isNotEmpty ? applicant.dateBirth : '—'} · ${applicant.age} ans'
                       ),
-                      ('CIN / Passeport', applicant.cni),
+                      // ('CIN / Passeport', applicant.cni),
                       ('Nationalité', applicant.nationality?.name ?? 'Sénégalaise'),
                       (
                         'Adresse',

@@ -1,22 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:sime_v2/core/const/app_routes.dart';
 import 'package:sime_v2/core/design_system/tokens/app_dimensions.dart';
 import '../../../../core/design_system/tokens/app_colors.dart';
 import '../../../../core/design_system/tokens/app_text_styles.dart';
 
 class ProfileMenuCard extends StatelessWidget {
   const ProfileMenuCard({super.key});
- 
+
   @override
   Widget build(BuildContext context) {
-    // (icône, label, sous-titre, fond icône, couleur icône)
+    // (icône, label, sous-titre, fond icône, couleur icône, action)
     // Tous les tokens viennent de AppColors — zéro hex hardcodé
-    final menuItems = [
+    final List<(IconData, String, String, Color, Color, VoidCallback)> menuItems = [
       (
         Icons.description_outlined,
         'Mon CV',
         'Mis à jour le 10 mai 2026',
         AppColors.primary100,   // vert doux
         AppColors.primary800,   // vert sombre
+        () {},
+      ),
+      (
+        Icons.badge_outlined,
+        'Pièce d\'identité',
+        'CNI ou Passeport · Recto/Verso',
+        AppColors.secondary100, // marron doux institutionnel
+        AppColors.secondary600, // marron institutionnel
+        () => context.push(AppRoutes.editIdentityDocument),
       ),
       (
         Icons.notifications_none_outlined,
@@ -24,6 +35,7 @@ class ProfileMenuCard extends StatelessWidget {
         'Alertes offres & rendez-vous',
         AppColors.bleuANPEJBg,  // bleu doux ANPEJ
         AppColors.bleuANPEJ,    // bleu ANPEJ
+        () {},
       ),
       (
         Icons.lock_outline_rounded,
@@ -31,6 +43,7 @@ class ProfileMenuCard extends StatelessWidget {
         'Mot de passe · Biométrie',
         AppColors.accent100,    // jaune doux ANPEJ
         AppColors.accent800,    // jaune sombre ANPEJ
+        () {},
       ),
       (
         Icons.language_rounded,
@@ -38,6 +51,7 @@ class ProfileMenuCard extends StatelessWidget {
         'Français',
         AppColors.secondary100, // marron doux institutionnel
         AppColors.secondary600, // marron institutionnel
+        () {},
       ),
     ];
  
@@ -93,7 +107,7 @@ class ProfileMenuCard extends StatelessWidget {
                 color: AppColors.neutral300, // un cran plus visible que neutral200
                 size: 16,
               ),
-              onTap: () {},
+              onTap: item.$6,
             ),
           );
         }),

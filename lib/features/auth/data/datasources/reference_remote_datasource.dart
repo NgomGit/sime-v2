@@ -60,6 +60,11 @@ class ReferenceRemoteDataSource {
   }
 
   Future<List<ReferenceModel>> getFieldsOfStudy() async {
+    final response = await _apiClient.dio.get('/param/api/field-studies'); // Ajuste l'URL du backend
+    return _parseList(response.data['data']);
+  }
+
+  Future<List<ReferenceModel>> getDomainOfActivity() async {
     final response = await _apiClient.dio.get('/param/api/field-activities'); // Ajuste l'URL du backend
     return _parseList(response.data['data']);
   }

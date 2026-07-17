@@ -78,7 +78,15 @@ class RegistrationNotifier extends StateNotifier<RegistrationEntity> {
 
     try {
       final municipalities = await _referenceDataSource.getMunicipalities(departmentId);
-      state = state.copyWith(municipalities: municipalities);
+      // Filtrage défensif : si le backend ignore le paramètre departmentId
+      // et renvoie toutes les communes du pays, on ne garde que celles
+      // rattachées au département sélectionné (même logique que côté
+      // édition de profil, voir ProfileReferencesNotifier._filterByDepartment).
+      final hasDepartmentInfo = municipalities.any((m) => m.department != null);
+      final filtered = hasDepartmentInfo
+          ? municipalities.where((m) => m.department?.id == departmentId).toList()
+          : municipalities;
+      state = state.copyWith(municipalities: filtered);
     } catch (_) {}
   }
 

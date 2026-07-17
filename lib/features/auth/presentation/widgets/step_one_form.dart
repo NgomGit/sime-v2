@@ -169,6 +169,7 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
             Expanded(
               child: GenreTile(
                 label: 'Homme',
+                gender: GenreTileGender.male,
                 isSelected: formState.sex == 'HOMME',
                 onTap: () => notifier.updateField(sex: 'HOMME'),
               ),
@@ -177,6 +178,7 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
             Expanded(
               child: GenreTile(
                 label: 'Femme',
+                gender: GenreTileGender.female,
                 isSelected: formState.sex == 'FEMME',
                 onTap: () => notifier.updateField(sex: 'FEMME'),
               ),

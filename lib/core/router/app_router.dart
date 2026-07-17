@@ -9,7 +9,9 @@ import 'package:sime_v2/features/auth/presentation/screens/login_screen.dart';
 import 'package:sime_v2/features/auth/presentation/screens/splash_screen.dart';
 import 'package:sime_v2/features/notification/presentation/screens/notification_screen.dart';
 import 'package:sime_v2/features/offres/presentation/screens/offres_details_screen.dart';
-import 'package:sime_v2/features/profile/presentation/screens/edit_personal_profile_screen.dart';
+import 'package:sime_v2/features/profile/presentation/screens/edit_account_fields.dart';
+import 'package:sime_v2/features/profile/presentation/screens/edit_identity_document.dart';
+import 'package:sime_v2/features/profile/presentation/screens/edit_identity_informations.dart';
 import 'package:sime_v2/features/profile/presentation/screens/edit_professional_profile.dart';
 import 'package:sime_v2/features/profile/presentation/screens/user_profile_screen.dart';
 
@@ -79,7 +81,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'editPersonalProfile',
         pageBuilder: (context, state) => const MaterialPage(
           fullscreenDialog: true,
-          child: EditPersonalProfileScreen(),
+          child: EditAccountFieldsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.editIdentityInformations,
+        name: 'editIdentityInformations',
+        pageBuilder: (context, state) => const MaterialPage(
+          fullscreenDialog: true,
+          child: EditIdentityInformationsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.editIdentityDocument,
+        name: 'editIdentityDocument',
+        pageBuilder: (context, state) => const MaterialPage(
+          fullscreenDialog: true,
+          child: EditIdentityDocumentScreen(),
         ),
       ),
       GoRoute(

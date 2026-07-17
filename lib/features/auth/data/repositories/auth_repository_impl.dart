@@ -39,10 +39,13 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-Future<Either<Failure, ApplicantEntity>> updateUserAccount(Map<String, dynamic> payload) async {
-  final json = await _remoteDataSource.updateAuthUser(payload);
-  return Right(ApplicantModel.fromJson(json));
- 
-}
+  Future<Either<Failure, UserProfileEntity>> updateUserAccount(Map<String, dynamic> payload) async {
+    final json = await _remoteDataSource.updateAuthUser(payload);
+    // La réponse de PUT /auth/api/auth/me est la ressource "compte
+    // utilisateur" (id, firstName, lastName, sex, username, email, phone,
+    // active...), pas un ApplicantModel complet : on la parse en
+    // UserProfileModel, dont les champs correspondent exactement.
+    return Right(UserProfileModel.fromJson(json));
+  }
   
 }

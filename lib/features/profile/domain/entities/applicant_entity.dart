@@ -11,20 +11,25 @@ class ApplicantEntity {
   final int age;
   final List<dynamic> contacts; // À typer plus tard si nécessaire
   final List<ApplicantIdentityEntity> identities;
+  final int? residCountryId;
   final CountryEntity? residCountry;
+  final int? residRegionId;
   final RegionEntity? residRegion;
+  final int? residDepartmentId;
   final DepartmentEntity? residDepartment;
+  final int? residMunicipalityId;
   final MunicipalityEntity? residMunicipality;
   final CountryEntity? nationality;
   final String address;
   final int? branchId;
-  final dynamic office;
+  final int? officeId;
+  final OfficeEntity? office;
   final int userId;
   final UserProfileEntity? user;
   final String? cvUrl;
-  final String? maritalStatus;
+  final ReferenceEntity? maritalStatus;
   final int? nbChildren;
-  final String? disabilityType;
+  final ReferenceEntity? disabilityType;
   final ReferenceEntity? educationLevel;
   final ReferenceEntity? lastDegreeObtained;
   final ReferenceEntity? fieldStudy;
@@ -40,13 +45,18 @@ class ApplicantEntity {
     required this.age,
     required this.contacts,
     required this.identities,
+    this.residCountryId,
     this.residCountry,
+    this.residRegionId,
     this.residRegion,
+    this.residDepartmentId,
     this.residDepartment,
+    this.residMunicipalityId,
     this.residMunicipality,
     this.nationality,
     required this.address,
     this.branchId,
+    this.officeId,
     this.office,
     required this.userId,
     this.user,
@@ -64,13 +74,23 @@ class ApplicantEntity {
   // À ajouter dans ApplicantEntity :
   ApplicantEntity copyWith({
     String? dateBirth,
+    int? residCountryId,
+    CountryEntity? residCountry,
+    int? residRegionId,
+    RegionEntity? residRegion,
+    int? residDepartmentId,
+    DepartmentEntity? residDepartment,
+    int? residMunicipalityId,
+    MunicipalityEntity? residMunicipality,
     CountryEntity? nationality,
     String? address,
     UserProfileEntity? user,
     ReferenceEntity? educationLevel,
     ReferenceEntity? fieldStudy,
     ReferenceEntity? lastDegreeObtained,
-    MunicipalityEntity? residMunicipality,
+    ReferenceEntity? disabilityType,
+    int? officeId,
+    OfficeEntity? office,
   }) {
     return ApplicantEntity(
       id: id,
@@ -81,20 +101,25 @@ class ApplicantEntity {
       age: age,
       contacts: contacts,
       identities: identities,
-      residCountry: residCountry,
-      residRegion: residRegion,
-      residDepartment: residDepartment,
+      residCountryId: residCountryId ?? this.residCountryId,
+      residCountry: residCountry ?? this.residCountry,
+      residRegionId: residRegionId ?? this.residRegionId,
+      residRegion: residRegion ?? this.residRegion,
+      residDepartmentId: residDepartmentId ?? this.residDepartmentId,
+      residDepartment: residDepartment ?? this.residDepartment,
+      residMunicipalityId: residMunicipalityId ?? this.residMunicipalityId,
       residMunicipality: residMunicipality ?? this.residMunicipality,
       nationality: nationality ?? this.nationality,
       address: address ?? this.address,
       branchId: branchId,
-      office: office,
+      officeId: officeId ?? this.officeId,
+      office: office ?? this.office,
       userId: userId,
       user: user ?? this.user,
       cvUrl: cvUrl,
       maritalStatus: maritalStatus,
       nbChildren: nbChildren,
-      disabilityType: disabilityType,
+      disabilityType: disabilityType ?? this.disabilityType,
       educationLevel: educationLevel ?? this.educationLevel,
       lastDegreeObtained: lastDegreeObtained ?? this.lastDegreeObtained,
       fieldStudy: fieldStudy ?? this.fieldStudy,
@@ -155,6 +180,48 @@ class ApplicantIdentityEntity {
 
   /// Permet d'identifier rapidement si le document est un Passeport
   bool get isPassport => type.toUpperCase() == 'PASSPORT';
+}
+
+/// Agence / bureau ANPEJ rattaché au dossier candidat (ex. "CDEPS DAKAR").
+class OfficeEntity {
+  final int id;
+  final String? code;
+  final String name;
+  final String? phone;
+  final String? address;
+  final bool status;
+  final CountryEntity? country;
+  final RegionEntity? region;
+  final DepartmentEntity? department;
+  final MunicipalityEntity? municipality;
+  final ReferenceEntity? antenne;
+
+  /// Coordonnées GPS optionnelles (champ `coordinate` côté API — observé à
+  /// `null` sur tous les payloads vus jusqu'ici, mais parsé de façon
+  /// défensive dès qu'il est renseigné, voir `OfficeModel.fromJson`).
+  /// `null` si absentes ou dans un format non reconnu : l'ouverture dans une
+  /// app de cartes retombe alors sur une recherche par adresse plutôt que
+  /// par coordonnées précises.
+  final double? latitude;
+  final double? longitude;
+
+  const OfficeEntity({
+    required this.id,
+    this.code,
+    required this.name,
+    this.phone,
+    this.address,
+    this.status = true,
+    this.country,
+    this.region,
+    this.department,
+    this.municipality,
+    this.antenne,
+    this.latitude,
+    this.longitude,
+  });
+
+  bool get hasCoordinates => latitude != null && longitude != null;
 }
 
 /// Sous-entité générique pour les données géographiques (Country, Region, Department)

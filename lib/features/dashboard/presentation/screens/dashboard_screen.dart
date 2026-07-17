@@ -21,7 +21,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int currentIndex = 0;
 
   List<Widget> get _screens => [
-    DashboardHomeScreen(navigationToProfile: navigateToProfile),
+    DashboardHomeScreen(
+      navigationToProfile: navigateToProfile,
+      navigationToAgenda: navigateToAgenda,
+    ),
     const OffresScreen(),
     const RendezVousScreen(),
     const MonDossierScreen(),
@@ -31,6 +34,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void navigateToProfile() {
     setState(() {
       currentIndex = 4; // Index du profil dans la liste des écrans
+    });
+  }
+
+  void navigateToAgenda() {
+    setState(() {
+      currentIndex = 2; // Index de l'agenda dans la liste des écrans
     });
   }
 

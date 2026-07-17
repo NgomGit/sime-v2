@@ -213,7 +213,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           label: 'Nom d\'utilisateur *',
                           hint: 'Ex: user.name',
                           controller: _usernameController,
-                          keyboardType: TextInputType.name,
+                          keyboardType: TextInputType.text,
                           autofillHints: const [AutofillHints.username],
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {

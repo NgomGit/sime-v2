@@ -169,9 +169,29 @@ class ProfileReferencesNotifier extends StateNotifier<ProfileReferencesState> {
     state = state.copyWith(municipalities: []);
 
     try {
-      final municipalities =
-          await _referenceDataSource.getMunicipalities(departmentId);
-      state = state.copyWith(municipalities: municipalities);
+      final municipalities = await _referenceDataSource.getMunicipalities(departmentId);
+      state = state.copyWith(
+        municipalities: _filterByDepartment(municipalities, departmentId),
+      );
     } catch (_) {}
+  }
+
+  /// Filtrage défensif côté client des communes par département.
+  ///
+  /// L'appel réseau transmet déjà `departmentId` en paramètre (voir
+  /// [ReferenceRemoteDataSource.getMunicipalities]), à l'image de
+  /// [loadCascadeDepartments] pour les régions. Mais si le backend ignore ce
+  /// paramètre et renvoie l'ensemble des communes du pays, on ne garde ici
+  /// que celles réellement rattachées au département sélectionné.
+  ///
+  /// Si aucune commune ne porte d'information de département (l'API ne
+  /// renvoie pas cette relation), on ne peut pas vérifier l'appartenance :
+  /// on conserve alors la liste telle quelle plutôt que d'afficher un menu
+  /// vide.
+  List<MunicipalityEntity> _filterByDepartment(List<MunicipalityEntity> municipalities, int departmentId) {
+    final hasDepartmentInfo = municipalities.any((m) => m.department != null);
+    if (!hasDepartmentInfo) return municipalities;
+
+    return municipalities.where((m) => m.department?.id == departmentId).toList();
   }
 }

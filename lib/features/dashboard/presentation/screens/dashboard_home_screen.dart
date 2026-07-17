@@ -8,18 +8,26 @@ import 'package:sime_v2/core/design_system/tokens/app_colors.dart';
 import 'package:sime_v2/core/design_system/tokens/app_dimensions.dart';
 import 'package:sime_v2/core/design_system/tokens/app_text_styles.dart';
 import 'package:sime_v2/core/design_system/widgets/s_card.dart';
+import 'package:sime_v2/core/design_system/widgets/s_shimer.dart';
 import 'package:sime_v2/core/design_system/widgets/s_status_badge.dart';
 import 'package:sime_v2/core/design_system/widgets/s_tag.dart';
 import 'package:sime_v2/features/auth/presentation/providers/login_provider.dart';
 import 'package:sime_v2/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:sime_v2/features/dossier/domain/entities/dossier_entity.dart';
 import 'package:sime_v2/features/offres/domain/entities/offre_entity.dart';
-import 'package:sime_v2/features/rendezvous/domain/entities/rendezvous_entity.dart';
+import 'package:sime_v2/features/rendezvous/domain/entities/rdv_entity.dart';
+import 'package:sime_v2/features/rendezvous/presentation/providers/rdv_notifier.dart';
+import 'package:sime_v2/features/rendezvous/presentation/widgets/rdv_status_badge.dart';
 
 class DashboardHomeScreen extends ConsumerWidget {
-  const DashboardHomeScreen({super.key, required this.navigationToProfile});
+  const DashboardHomeScreen({
+    super.key,
+    required this.navigationToProfile,
+    required this.navigationToAgenda,
+  });
 
   final VoidCallback navigationToProfile;
+  final VoidCallback navigationToAgenda;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -66,8 +74,7 @@ class DashboardHomeScreen extends ConsumerWidget {
                   if (state.dossier != null)
                     _DossierStatusCard(dossier: state.dossier!),
                   const SizedBox(height: AppDimensions.sp16),
-                  if (state.upcomingRdv != null)
-                    _NextRdvCard(rdv: state.upcomingRdv!),
+                  _NextRdvSection(navigationToAgenda: navigationToAgenda),
                   const SizedBox(height: AppDimensions.sp16),
                   _OffresSection(offres: state.recommendedOffres),
                   const SizedBox(height: AppDimensions.sp48),
@@ -290,15 +297,23 @@ class _DossierStatusCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Prochain RDV
+// Prochain RDV — données réelles, partagées avec l'onglet Agenda via
+// rdvNotifierProvider (voir features/rendezvous). L'onglet Agenda est monté
+// en permanence dans l'IndexedStack du dashboard (voir dashboard_screen.dart)
+// donc son initState déclenche déjà le chargement initial ; cette section se
+// contente d'observer le même état plutôt que de redéclencher un fetch.
 // ─────────────────────────────────────────────────────────────────────────────
-class _NextRdvCard extends StatelessWidget {
-  const _NextRdvCard({required this.rdv});
+class _NextRdvSection extends ConsumerWidget {
+  const _NextRdvSection({required this.navigationToAgenda});
 
-  final RendezVousEntity rdv;
+  final VoidCallback navigationToAgenda;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rdvState = ref.watch(rdvNotifierProvider);
+    final nextRdv = rdvState.upcoming.isEmpty ? null : rdvState.upcoming.first;
+    final isInitialLoading = rdvState.isLoading && !rdvState.hasData;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -311,91 +326,186 @@ class _NextRdvCard extends StatelessWidget {
                 color: AppColors.neutral800,
               ),
             ),
-            // "Voir tout" — lien vert (action disponible = positif)
-            Text(
-              'Voir tout',
-              style: AppTextStyles.labelMedium.copyWith(
-                color: AppColors.primary600,
+            // "Voir tout" — lien vert (action disponible = positif), envoie
+            // toujours vers l'onglet Agenda (liste complète)
+            GestureDetector(
+              onTap: navigationToAgenda,
+              child: Text(
+                'Voir tout',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: AppColors.primary600,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: AppDimensions.sp10),
-        SCard(
-          child: Row(
-            children: [
-              // Bloc date — fond secondary100 (marron doux) + texte marron
-              // La date d'un RDV institutionnel porte la couleur de l'institution
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.sp10,
-                  vertical: AppDimensions.sp8,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.secondary100,
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      DateFormat('dd').format(rdv.dateTime),
-                      style: AppTextStyles.headingMedium.copyWith(
-                        color: AppColors
-                            .secondary800, // jour en marron institutionnel
-                      ),
-                    ),
-                    Text(
-                      DateFormat('MMM', 'fr')
-                          .format(rdv.dateTime)
-                          .toUpperCase(),
-                      style: AppTextStyles.labelXSmall.copyWith(
-                        color: AppColors.secondary600, // mois en marron moyen
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppDimensions.sp12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Entretien — ${rdv.conseillerName}',
-                      style: AppTextStyles.labelLarge.copyWith(
-                        color: AppColors.neutral800,
-                      ),
-                    ),
-                    const SizedBox(height: AppDimensions.sp4),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.access_time,
-                          size: AppDimensions.iconXS,
-                          color: AppColors.neutral400,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          '${DateFormat('HH\'h\'mm').format(rdv.dateTime)} · ${rdv.location}',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.neutral500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppDimensions.sp6),
-                    const SStatusBadge(label: 'Confirmé'),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.neutral200,
-              ),
-            ],
-          ),
-        ),
+        if (isInitialLoading)
+          const _NextRdvSkeleton()
+        else if (nextRdv != null)
+          _NextRdvCard(rdv: nextRdv, onTap: navigationToAgenda)
+        else
+          _NoRdvCard(onTap: navigationToAgenda),
       ],
+    );
+  }
+}
+
+class _NextRdvCard extends StatelessWidget {
+  const _NextRdvCard({required this.rdv, required this.onTap});
+
+  final RdvEntity rdv;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final officeName = rdv.office?.name ?? 'Bureau ANPEJ';
+    final address = rdv.office?.address ?? rdv.office?.name;
+
+    return SCard(
+      onTap: onTap,
+      child: Row(
+        children: [
+          // Bloc date — fond secondary100 (marron doux) + texte marron
+          // La date d'un RDV institutionnel porte la couleur de l'institution
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimensions.sp10,
+              vertical: AppDimensions.sp8,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.secondary100,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  DateFormat('dd').format(rdv.startAt),
+                  style: AppTextStyles.headingMedium.copyWith(
+                    color: AppColors.secondary800, // jour en marron institutionnel
+                  ),
+                ),
+                Text(
+                  DateFormat('MMM', 'fr').format(rdv.startAt).toUpperCase(),
+                  style: AppTextStyles.labelXSmall.copyWith(
+                    color: AppColors.secondary600, // mois en marron moyen
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppDimensions.sp12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  officeName,
+                  style: AppTextStyles.labelLarge.copyWith(color: AppColors.neutral800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppDimensions.sp4),
+                Row(
+                  children: [
+                    const Icon(Icons.access_time, size: AppDimensions.iconXS, color: AppColors.neutral400),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: Text(
+                        address != null
+                            ? "${DateFormat("HH'h'mm").format(rdv.startAt)} · $address"
+                            : DateFormat("HH'h'mm").format(rdv.startAt),
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.neutral500),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppDimensions.sp6),
+                RdvStatusBadge(status: rdv.statusRdv, rawStatus: rdv.rawStatusRdv),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: AppColors.neutral200),
+        ],
+      ),
+    );
+  }
+}
+
+/// État vide — aucun rendez-vous à venir. Reste cliquable vers l'agenda
+/// plutôt que de masquer complètement la section.
+class _NoRdvCard extends StatelessWidget {
+  const _NoRdvCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SCard(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.neutral50,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(Icons.event_available_outlined, color: AppColors.neutral400, size: AppDimensions.iconMD),
+          ),
+          const SizedBox(width: AppDimensions.sp12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Aucun rendez-vous à venir',
+                  style: AppTextStyles.labelMedium.copyWith(color: AppColors.neutral600),
+                ),
+                Text(
+                  'Consultez votre agenda',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.neutral400),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: AppColors.neutral200),
+        ],
+      ),
+    );
+  }
+}
+
+/// Squelette affiché pendant le tout premier chargement (pas de cache
+/// encore disponible) — cohérent avec le skeleton de l'écran Agenda.
+class _NextRdvSkeleton extends StatelessWidget {
+  const _NextRdvSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SCard(
+      child: Row(
+        children: [
+          const SShimmer(width: 52, height: 52, radius: AppDimensions.radiusMD),
+          const SizedBox(width: AppDimensions.sp12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SShimmer(width: 140, height: 15),
+                const SizedBox(height: AppDimensions.sp8),
+                const SShimmer(width: 100, height: 12),
+                const SizedBox(height: AppDimensions.sp8),
+                const SShimmer(width: 70, height: 18, radius: AppDimensions.radiusFull),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
