@@ -68,6 +68,29 @@ class ApplicantNotifier extends StateNotifier<ApplicantState> {
     return _applyResult(() => _repository.getApplicantProfile());
   }
 
+  /// Vrai dès qu'un chargement automatique (paresseux) a été tenté — empêche
+  /// les relances en boucle via [ensureLoaded]. N'affecte pas [loadProfile].
+  bool _autoLoadAttempted = false;
+
+  /// Charge le profil uniquement s'il n'est pas déjà en mémoire et qu'aucun
+  /// chargement n'est en cours. Utilisé par les écrans qui ont besoin de
+  /// connaître l'état de complétion du profil (verrou « Exprimer un besoin »)
+  /// sans forcément afficher l'onglet Profil — évite les rechargements
+  /// redondants tout en garantissant qu'une donnée (réseau ou cache) est
+  /// disponible.
+  Future<void> ensureLoaded() async {
+    // On ne relance jamais automatiquement plus d'une fois : en cas d'échec
+    // (hors-ligne sans cache), le verrou « Exprimer un besoin » reste fermé
+    // par sécurité, sans marteler le réseau. Un rafraîchissement manuel
+    // (pull-to-refresh / bouton Réessayer de l'écran Profil) passe par
+    // [loadProfile] et reste, lui, toujours disponible.
+    if (state.applicant != null || state.isLoading || _autoLoadAttempted) {
+      return;
+    }
+    _autoLoadAttempted = true;
+    await loadProfile();
+  }
+
   // ── Écriture ─────────────────────────────────────────────────────────────
 
   /// Met à jour les champs "compte utilisateur" (nom, prénom, genre,

@@ -125,7 +125,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             height: 38,
                             decoration: BoxDecoration(
                               color: AppColors.darkBorder,
-                              borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                              borderRadius:
+                                  BorderRadius.circular(AppDimensions.radiusSM),
                               border: Border.all(color: AppColors.darkBorder),
                             ),
                             alignment: Alignment.center,
@@ -197,7 +198,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             height: 5,
                             decoration: BoxDecoration(
                               color: AppColors.neutral200,
-                              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                              borderRadius: BorderRadius.circular(
+                                  AppDimensions.radiusFull),
                             ),
                           ),
                         ),
@@ -239,7 +241,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             GestureDetector(
-                              onTap: () => setState(() => _rememberMe = !_rememberMe),
+                              onTap: () =>
+                                  setState(() => _rememberMe = !_rememberMe),
                               child: Row(
                                 children: [
                                   SizedBox(

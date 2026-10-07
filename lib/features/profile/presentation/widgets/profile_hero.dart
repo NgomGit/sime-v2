@@ -111,7 +111,93 @@ class ProfileHero extends StatelessWidget {
                 color: AppColors.darkTextSecondary,
               ),
             ),
-            const SizedBox(height: AppDimensions.sp14),
+            const SizedBox(height: AppDimensions.sp12),
+
+            // Bureau affilié : puce si renseigné, sinon bouton « Choisir mon
+            // bureau » directement dans le header (le choix se fait en tête du
+            // formulaire d'identité).
+            if (applicant.office != null)
+              GestureDetector(
+                onTap: () => context.push(AppRoutes.editIdentityInformations),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.sp10,
+                    vertical: AppDimensions.sp6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary400.withAlpha(30),
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.radiusFull),
+                    border:
+                        Border.all(color: AppColors.primary400.withAlpha(70)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.account_balance_rounded,
+                          size: 13, color: AppColors.primary400),
+                      const SizedBox(width: AppDimensions.sp6),
+                      Flexible(
+                        child: Text(
+                          applicant.office!.name,
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.primary400,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: AppDimensions.sp8),
+                      // Icône éditer — permet de changer le bureau depuis le header.
+                      Container(
+                        width: 18,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary400.withAlpha(45),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.edit_outlined,
+                            size: 11, color: AppColors.primary400),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              GestureDetector(
+                onTap: () => context.push(AppRoutes.editIdentityInformations),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.sp12,
+                    vertical: AppDimensions.sp8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary400,
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.radiusFull),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.add_location_alt_outlined,
+                          size: 14, color: AppColors.white),
+                      const SizedBox(width: AppDimensions.sp6),
+                      Text(
+                        'Choisir mon bureau',
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: AppDimensions.sp4),
  
             // Tags sémantiques — couleurs ANPEJ par service
             // Wrap(

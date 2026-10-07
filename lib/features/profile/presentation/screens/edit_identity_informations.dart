@@ -45,6 +45,7 @@ class _EditIdentityInformationsScreenState
   int? _selectedDepartmentId;
   int? _selectedMunicipalityId;
   int? _selectedNationalityId;
+  int? _selectedOfficeId;
 
   bool _isLoading = false;
 
@@ -61,6 +62,7 @@ class _EditIdentityInformationsScreenState
     _selectedDepartmentId = applicant?.residDepartment?.id;
     _selectedMunicipalityId = applicant?.residMunicipality?.id;
     _selectedNationalityId = applicant?.nationality?.id;
+    _selectedOfficeId = applicant?.office?.id ?? applicant?.officeId;
 
     if (applicant?.dateBirth != null && applicant!.dateBirth.isNotEmpty) {
       _selectedDate = DateTime.tryParse(applicant.dateBirth);
@@ -92,7 +94,18 @@ class _EditIdentityInformationsScreenState
   String _cleanGeoName(String name) {
     return name
         .replaceAll('RanÃ©rou', 'Ranérou')
-        .replaceAll('KÃ©dougou', 'Kédougou');
+        .replaceAll('KÃ©dougou', 'Kédougou')
+        .replaceAll('GuÃ©diawaye', 'Guédiawaye');
+  }
+
+  /// Libellé d'un bureau : nom + région si disponible (ex. « CDEPS DAKAR · Dakar »).
+  String _officeLabel(dynamic office) {
+    final name = office.name?.toString() ?? 'Bureau';
+    final region = office.region?.name?.toString();
+    if (region != null && region.trim().isNotEmpty) {
+      return '$name · ${_cleanGeoName(region)}';
+    }
+    return name;
   }
 
   Future<void> _saveIdentity() async {
@@ -112,6 +125,8 @@ class _EditIdentityInformationsScreenState
       'departmentId': _selectedDepartmentId,
       'municipalityId': _selectedMunicipalityId,
       'nationalityId': _selectedNationalityId,
+      // Bureau affilié (même convention d'identifiant à plat que le reste).
+      if (_selectedOfficeId != null) 'officeId': _selectedOfficeId,
       'identities': applicant?.identities ?? [],
     };
 
@@ -162,6 +177,8 @@ class _EditIdentityInformationsScreenState
     final selectedNationality = refState.nationalities
         .where((n) => n.id == _selectedNationalityId)
         .firstOrNull;
+    final selectedOffice =
+        refState.offices.where((o) => o.id == _selectedOfficeId).firstOrNull;
 
     return SOverlayLoader(
       isLoading: _isLoading,
@@ -192,6 +209,23 @@ class _EditIdentityInformationsScreenState
                         const Text('Modifiez vos informations officielles',
                             style: AppTextStyles.bodySmall),
                         const SizedBox(height: AppDimensions.sp24),
+
+                        // Bureau affilié (Guichet Unique) — en tête du formulaire.
+                        SSearchableDropdown<dynamic>(
+                          label: 'Bureau affilié',
+                          pickerTitle: 'Sélectionner un bureau',
+                          searchHint: 'Rechercher un bureau...',
+                          leadingIcon: Icons.account_balance_rounded,
+                          value: selectedOffice != null
+                              ? _officeLabel(selectedOffice)
+                              : '',
+                          currentValue: selectedOffice,
+                          options: refState.offices,
+                          labelExtractor: (office) => _officeLabel(office),
+                          onSelected: (office) =>
+                              setState(() => _selectedOfficeId = office.id),
+                        ),
+                        const SizedBox(height: AppDimensions.sp14),
 
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,

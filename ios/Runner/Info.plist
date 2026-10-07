@@ -26,18 +26,18 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>SIME  a besoin d'accéder à votre caméra pour scanner votre pièce d'identité.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Accès au micro (requis par le plugin caméra).</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Accès à la galerie pour importer un document.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
-	<key>NSCameraUsageDescription</key>
-	<string>SIME v2 Mobile Banking a besoin d'accéder à votre caméra pour scanner votre pièce d'identité.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Accès au micro (requis par le plugin caméra).</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Accès à la galerie pour importer un document.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

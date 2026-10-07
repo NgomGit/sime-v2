@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sime_v2/core/const/app_routes.dart';
+import 'package:sime_v2/core/network/network_info.dart';
 import 'package:sime_v2/features/auth/presentation/providers/login_provider.dart';
 import 'package:sime_v2/features/profile/presentation/providers/applicant_notifier.dart';
 import 'package:sime_v2/features/profile/presentation/widgets/info_section_card.dart';
@@ -34,6 +35,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final profileState = ref.watch(applicantNotifierProvider);
     final applicant = profileState.applicant;
+    final isOffline = !(ref.watch(connectivityStreamProvider).valueOrNull ?? true);
 
     // 1. Écran d'erreur bloquant : Pas de cache + Échec de chargement/parsing
     if (profileState.errorMessage != null &&
@@ -54,14 +56,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 const SizedBox(height: AppDimensions.sp14),
                 Text(
-                  'Connexion impossible',
+                  isOffline ? 'Hors-ligne' : 'Connexion impossible',
                   style: AppTextStyles.headingSmall
                       .copyWith(color: AppColors.neutral800),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  profileState.errorMessage ??
-                      'Une erreur de chargement est survenue.',
+                  isOffline
+                      ? 'Aucune donnée de profil n\'est encore enregistrée sur cet appareil. Connectez-vous à Internet une première fois pour l\'afficher hors-ligne ensuite.'
+                      : (profileState.errorMessage ??
+                          'Une erreur de chargement est survenue.'),
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyMedium
                       .copyWith(color: AppColors.neutral500),
@@ -109,32 +113,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ),
 
-            // Bandeau d'avertissement non bloquant si erreur réseau mais cache présent
+            // Bandeau non bloquant :
+            //  • rouge  → une actualisation a échoué (données affichées = cache),
+            //  • ambre  → simplement hors-ligne, profil servi depuis Hive.
+            // Le profil reste entièrement lisible dans les deux cas.
             if (profileState.errorMessage != null)
               SliverToBoxAdapter(
-                child: Container(
-                  color: AppColors.error.withValues(alpha: 0.1),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: AppDimensions.pagePaddingH,
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.signal_wifi_connected_no_internet_4_rounded,
-                        color: AppColors.error,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Mode hors-ligne : Impossible d\'actualiser les données.',
-                          style: AppTextStyles.bodySmall
-                              .copyWith(color: AppColors.error),
-                        ),
-                      ),
-                    ],
-                  ),
+                child: _ProfileBanner(
+                  icon: Icons.signal_wifi_connected_no_internet_4_rounded,
+                  color: AppColors.error,
+                  message: 'Impossible d\'actualiser : données affichées depuis le cache.',
+                ),
+              )
+            else if (isOffline)
+              SliverToBoxAdapter(
+                child: _ProfileBanner(
+                  icon: Icons.cloud_off_rounded,
+                  color: AppColors.accent800,
+                  background: AppColors.accent100,
+                  message: 'Mode hors-ligne · profil chargé depuis la mémoire de l\'appareil.',
                 ),
               ),
 
@@ -168,6 +165,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: AppDimensions.sp10),
+
+                  // Situation personnelle — statut matrimonial, enfants, handicap.
+                  InfoSectionCard(
+                    title: 'Situation personnelle',
+                    onEditTap: () =>
+                        context.push(AppRoutes.editPersonalSituation),
+                    rows: [
+                      (
+                        'Situation matrimoniale',
+                        applicant.maritalStatus?.name ?? 'Non renseignée'
+                      ),
+                      (
+                        "Nombre d'enfants",
+                        applicant.nbChildren != null
+                            ? '${applicant.nbChildren}'
+                            : 'Non renseigné'
+                      ),
+                      (
+                        'Type de handicap',
+                        applicant.disabilityType?.name ?? 'Aucun'
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppDimensions.sp10),
+
                   InfoSectionCard(
                     title: 'Profil professionnel',
                     onEditTap: () =>
@@ -228,5 +250,43 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _onLogoutTap(BuildContext context, WidgetRef ref) {
     ref.read(loginNotifierProvider.notifier).logout();
+  }
+}
+
+/// Bandeau d'information non bloquant en tête de l'écran Profil.
+class _ProfileBanner extends StatelessWidget {
+  const _ProfileBanner({
+    required this.icon,
+    required this.color,
+    required this.message,
+    this.background,
+  });
+
+  final IconData icon;
+  final Color color;
+  final Color? background;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: background ?? color.withValues(alpha: 0.1),
+      padding: const EdgeInsets.symmetric(
+        vertical: 8,
+        horizontal: AppDimensions.pagePaddingH,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTextStyles.bodySmall.copyWith(color: color),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

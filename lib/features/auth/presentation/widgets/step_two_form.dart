@@ -85,7 +85,7 @@ class StepTwoForm extends ConsumerWidget {
       children: [
         const Text('Pièce justificative', style: AppTextStyles.headingSmall),
         const SizedBox(height: AppDimensions.sp4),
-        const Text('Veuillez fournir un document d\'identité valide.', style: AppTextStyles.bodySmall),
+        const Text('Vous pouvez ajouter une pièce d\'identité (facultatif).', style: AppTextStyles.bodySmall),
         const SizedBox(height: AppDimensions.sp24),
 
         // Menu de sélection du type de document
@@ -122,7 +122,7 @@ class StepTwoForm extends ConsumerWidget {
             children: [
               Expanded(
                 child: _UploadCard(
-                  label: 'Recto de la CNI *',
+                  label: 'Recto de la CNI',
                   filePath: formState.documentPathRecto,
                   onTap: () => _showPickOptions(context, ref, isRecto: true),
                   onDelete: () => notifier.updateRecto(null),
@@ -131,7 +131,7 @@ class StepTwoForm extends ConsumerWidget {
               const SizedBox(width: AppDimensions.sp12),
               Expanded(
                 child: _UploadCard(
-                  label: 'Verso de la CNI *',
+                  label: 'Verso de la CNI',
                   filePath: formState.documentPathVerso,
                   onTap: () => _showPickOptions(context, ref, isRecto: false),
                   onDelete: () => notifier.updateVerso(null),
@@ -141,7 +141,7 @@ class StepTwoForm extends ConsumerWidget {
           ),
         ] else ...[
           _UploadCard(
-            label: 'Page principale du Passeport *',
+            label: 'Page principale du Passeport',
             filePath: formState.documentPathRecto,
             onTap: () => _showPickOptions(context, ref, isRecto: true),
             onDelete: () => notifier.updateRecto(null),

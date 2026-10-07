@@ -47,6 +47,11 @@ class RegistrationNotifier extends StateNotifier<RegistrationEntity> {
     }
   }
 
+  /// Recharge les référentiels de base (pays, nationalités, régions). Utile
+  /// lorsque le chargement initial a échoué (hors-ligne) : l'utilisateur peut
+  /// réessayer une fois la connexion revenue, sans quitter l'inscription.
+  Future<void> reloadReferences() => _loadInitialReferences();
+
   /// Gestion de la cascade lors du changement de Région
   Future<void> onRegionChanged(int regionId) async {
     state = state.copyWith(
@@ -145,9 +150,149 @@ void changeDocumentType(String type) {
     );
   }
 
-  void nextStep() => state = state.copyWith(currentStep: state.currentStep + 1);
-  void prevStep() => state = state.copyWith(currentStep: state.currentStep - 1);
-  void resetSteps() => state = state.copyWith(currentStep: 1, isSuccess: false, errorMessage: null);
+  void nextStep() =>
+      state = state.copyWith(currentStep: state.currentStep + 1, showErrors: false);
+  void prevStep() =>
+      state = state.copyWith(currentStep: state.currentStep - 1, showErrors: false);
+  void resetSteps() => state = state.copyWith(
+      currentStep: 1, isSuccess: false, errorMessage: null, showErrors: false);
+
+  /// Active l'affichage des messages d'erreur de validation pour l'étape
+  /// courante (déclenché quand l'utilisateur tente de passer à l'étape suivante
+  /// avec des champs obligatoires manquants ou invalides).
+  void showValidationErrors() => state = state.copyWith(showErrors: true);
+
+  // ── Validation des champs obligatoires ─────────────────────────────────────
+  // Les getters d'erreur ne renvoient un message QUE lorsque `showErrors` est
+  // actif (après une tentative de passage d'étape) : pas d'erreur "au repos".
+  // L'upload de pièce justificative (étape 2) est volontairement facultatif.
+
+  bool get _showErr => state.showErrors;
+
+  String? _requiredText(String value, String message) =>
+      value.trim().isEmpty ? message : null;
+
+  static final RegExp _emailRe = RegExp(r'^[\w.\-+]+@[\w\-]+\.[\w.\-]+$');
+
+  /// Âge calculé depuis la date de naissance, ou `null` si absente/invalide.
+  int? get _ageFromDob {
+    final dob = state.dateBirth;
+    if (dob == null || dob.isEmpty) return null;
+    final d = DateTime.tryParse(dob);
+    if (d == null) return null;
+    final now = DateTime.now();
+    var age = now.year - d.year;
+    if (now.month < d.month || (now.month == d.month && now.day < d.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  bool get _cniFormatOk =>
+      state.documentType != 'CNI' ||
+      state.cni.replaceAll(RegExp(r'\s'), '').length == 13;
+
+  // Étape 1 — informations personnelles
+  String? get firstNameError =>
+      _showErr ? _requiredText(state.firstName, 'Le prénom est obligatoire') : null;
+  String? get lastNameError =>
+      _showErr ? _requiredText(state.lastName, 'Le nom est obligatoire') : null;
+  String? get placeBirthError => _showErr
+      ? _requiredText(state.placeBirth, 'Le lieu de naissance est obligatoire')
+      : null;
+  String? get addressError =>
+      _showErr ? _requiredText(state.residAddress, "L'adresse est obligatoire") : null;
+
+  String? get dateBirthError {
+    if (!_showErr) return null;
+    if (state.dateBirth == null || state.dateBirth!.isEmpty) {
+      return 'La date de naissance est obligatoire';
+    }
+    final age = _ageFromDob;
+    if (age == null) return 'Date de naissance invalide';
+    if (age < 15) return 'Vous devez avoir au moins 15 ans';
+    return null;
+  }
+
+  String? get cniError {
+    if (!_showErr) return null;
+    if (state.cni.trim().isEmpty) return 'Le numéro CIN est obligatoire';
+    if (!_cniFormatOk) return 'Le CIN doit contenir 13 chiffres';
+    return null;
+  }
+
+  String? get regionError =>
+      _showErr && state.residRegionId == 0 ? 'Sélectionnez une région' : null;
+  String? get departmentError =>
+      _showErr && state.residDepartmentId == 0 ? 'Sélectionnez un département' : null;
+  String? get nationalityError =>
+      _showErr && state.nationalityId == 0 ? 'Sélectionnez une nationalité' : null;
+
+  // Étape 3 — création de compte
+  String? get phoneError {
+    if (!_showErr) return null;
+    final digits = state.phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return 'Le numéro de téléphone est obligatoire';
+    if (digits.length < 11) return 'Numéro de téléphone invalide';
+    return null;
+  }
+
+  String? get emailError {
+    if (!_showErr) return null;
+    final v = state.email.trim();
+    if (v.isEmpty) return "L'adresse email est obligatoire";
+    if (!_emailRe.hasMatch(v)) return 'Adresse email invalide';
+    return null;
+  }
+
+  String? get usernameError {
+    if (!_showErr) return null;
+    final v = state.username.trim();
+    if (v.isEmpty) return "Le nom d'utilisateur est obligatoire";
+    if (v.length < 3) return 'Au moins 3 caractères';
+    return null;
+  }
+
+  String? get passwordError {
+    if (!_showErr) return null;
+    if (state.password.isEmpty) return 'Le mot de passe est obligatoire';
+    if (state.password.length < 6) return 'Au moins 6 caractères';
+    return null;
+  }
+
+  /// Indique si l'étape [step] est valide (évaluation "pure", indépendante de
+  /// `showErrors`). Sert à décider si l'on autorise le passage à l'étape
+  /// suivante. L'étape 2 (pièce justificative) est toujours valide : l'upload
+  /// est facultatif.
+  bool isStepValid(int step) {
+    switch (step) {
+      case 1:
+        return state.firstName.trim().isNotEmpty &&
+            state.lastName.trim().isNotEmpty &&
+            state.placeBirth.trim().isNotEmpty &&
+            state.residAddress.trim().isNotEmpty &&
+            (state.dateBirth?.isNotEmpty ?? false) &&
+            (_ageFromDob ?? -1) >= 15 &&
+            state.cni.trim().isNotEmpty &&
+            _cniFormatOk &&
+            state.residRegionId != 0 &&
+            state.residDepartmentId != 0 &&
+            state.nationalityId != 0;
+      case 2:
+        return true;
+      case 3:
+        final digits = state.phone.replaceAll(RegExp(r'\D'), '');
+        final email = state.email.trim();
+        return digits.length >= 11 &&
+            email.isNotEmpty &&
+            _emailRe.hasMatch(email) &&
+            state.username.trim().length >= 3 &&
+            state.password.length >= 6;
+      default:
+        return true;
+    }
+  }
+
   /// Soumission finale de l'inscription (Étape 3 / Étape finale)
   Future<void> submit() async {
     state = state.copyWith(isLoading: true, errorMessage: null, isSuccess: false);

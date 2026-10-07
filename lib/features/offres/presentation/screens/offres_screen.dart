@@ -8,7 +8,10 @@ import '../../../../core/design_system/tokens/app_dimensions.dart';
 import '../../../../core/design_system/tokens/app_text_styles.dart';
 
 import '../../domain/entities/offre_entity.dart';
+import '../providers/external_offers_notifier.dart';
+import '../providers/job_offers_notifier.dart';
 import '../providers/offres_provider.dart';
+import '../providers/training_offers_notifier.dart';
 
 class OffresScreen extends ConsumerStatefulWidget {
   const OffresScreen({super.key});
@@ -18,77 +21,142 @@ class OffresScreen extends ConsumerStatefulWidget {
 }
 
 class _OffresScreenState extends ConsumerState<OffresScreen> {
-  OffreType? _selectedType;
+  final _searchController = TextEditingController();
 
   static const _filters = [
-    (label: 'Tous',      type: null),
-    (label: 'Emploi',    type: OffreType.emploi),
-    (label: 'Stage',     type: OffreType.stage),
+    (label: 'Tous', type: null),
+    (label: 'Emploi', type: OffreType.emploi),
+    (label: 'Externes', type: OffreType.externe),
     (label: 'Formation', type: OffreType.formation),
-    (label: 'Migration', type: OffreType.migration),
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Premier chargement offline-first des deux sources après le premier frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(jobOffersNotifierProvider.notifier).ensureLoaded();
+      ref.read(trainingOffersNotifierProvider.notifier).ensureLoaded();
+      ref.read(externalOffersNotifierProvider.notifier).ensureLoaded();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    await Future.wait([
+      ref.read(jobOffersNotifierProvider.notifier).loadOffers(silent: true),
+      ref.read(trainingOffersNotifierProvider.notifier).loadOffers(silent: true),
+      ref.read(externalOffersNotifierProvider.notifier).loadOffers(silent: true),
+    ]);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final offresValue = ref.watch(offresListProvider);
+    final offres = ref.watch(offresListProvider);
+    final jobs = ref.watch(jobOffersNotifierProvider);
+    final trainings = ref.watch(trainingOffersNotifierProvider);
+    final externals = ref.watch(externalOffersNotifierProvider);
+    final filter = ref.watch(offresFilterProvider);
+
+    final hasAnyData = jobs.hasData || trainings.hasData || externals.hasData;
+    final isLoading =
+        (jobs.isLoading || trainings.isLoading || externals.isLoading) &&
+            !hasAnyData;
+    final isSyncing =
+        jobs.isSyncing || trainings.isSyncing || externals.isSyncing;
+    final isOffline =
+        jobs.isOffline || trainings.isOffline || externals.isOffline;
+    final errorMessage =
+        jobs.errorMessage ?? trainings.errorMessage ?? externals.errorMessage;
+    final hasError = errorMessage != null && !hasAnyData;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header sombre (même héro que onboarding / connexion) ─────────
             _SearchHeader(
-              onFilterChanged: (type) {
-                setState(() => _selectedType = type);
-                ref.read(offresFilterProvider.notifier).update(
-                      (s) => OffresFilter(type: type, query: s.query),
-                    );
-              },
+              controller: _searchController,
+              count: offres.length,
+              onChanged: (value) => ref
+                  .read(offresFilterProvider.notifier)
+                  .update((s) => s.copyWith(query: value)),
             ),
-
-            // ── Filter chips (dans la continuité du header sombre) ───────────
             _FilterChips(
-              selectedType: _selectedType,
+              selectedType: filter.type,
               filters: _filters,
-              onSelected: (type) {
-                setState(() => _selectedType = type);
-                ref.read(offresFilterProvider.notifier).update(
-                      (s) => OffresFilter(type: type, query: s.query),
-                    );
-              },
+              onSelected: (type) => ref
+                  .read(offresFilterProvider.notifier)
+                  .update((s) => s.copyWith(type: type, clearType: type == null)),
             ),
 
-            // ── Liste des offres ─────────────────────────────────────────────
+            // Bandeau de statut offline / synchronisation.
+            _StatusBanner(
+              isOffline: isOffline && hasAnyData,
+              isSyncing: isSyncing,
+              lastUpdated: jobs.lastUpdated ?? trainings.lastUpdated,
+            ),
+
             Expanded(
-              child: offresValue.when(
-                loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.secondary800,
-                  ),
+              child: RefreshIndicator(
+                onRefresh: _refresh,
+                color: AppColors.primary400,
+                child: _buildBody(
+                  isLoading: isLoading,
+                  hasError: hasError,
+                  errorMessage: errorMessage,
+                  offres: offres,
                 ),
-                error: (e, _) => Center(
-                  child: Text(
-                    'Erreur: $e',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.neutral500,
-                    ),
-                  ),
-                ),
-                data: (offres) => offres.isEmpty
-                    ? const EmptyState()
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
-                        itemCount: offres.length,
-                        itemBuilder: (ctx, i) => Padding(
-                          padding: const EdgeInsets.only(bottom: AppDimensions.sp10),
-                          child: OffreCard(offre: offres[i]),
-                        ),
-                      ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBody({
+    required bool isLoading,
+    required bool hasError,
+    required String? errorMessage,
+    required List<OffreEntity> offres,
+  }) {
+    if (isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.secondary800),
+      );
+    }
+
+    if (hasError) {
+      return _ErrorList(
+        message: errorMessage ?? 'Une erreur est survenue',
+        onRetry: _refresh,
+      );
+    }
+
+    if (offres.isEmpty) {
+      // ListView pour que le pull-to-refresh reste disponible même à vide.
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 120),
+          EmptyState(),
+        ],
+      );
+    }
+
+    return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
+      itemCount: offres.length,
+      itemBuilder: (ctx, i) => Padding(
+        padding: const EdgeInsets.only(bottom: AppDimensions.sp10),
+        child: OffreCard(offre: offres[i]),
       ),
     );
   }
@@ -97,25 +165,26 @@ class _OffresScreenState extends ConsumerState<OffresScreen> {
 // ─────────────────────────────────────────────────────────────────────────────
 // Search header
 // ─────────────────────────────────────────────────────────────────────────────
-// Fond darkSurface (#0F170A) — cohérence avec l'onboarding et la connexion.
-// primary900 (vert très sombre) remplacé : le header n'est pas un état positif,
-// c'est un espace institutionnel de recherche → fond forêt sombre.
-//
-// Bouton filtre (tune) : fond secondary100 + icône secondary800 (marron).
-// Sur fond sombre, le marron doux ressort mieux que le vert vif et
-// communique "action institutionnelle" plutôt que "action positive".
 class _SearchHeader extends StatelessWidget {
-  const _SearchHeader({this.onFilterChanged});
+  const _SearchHeader({
+    required this.controller,
+    required this.count,
+    required this.onChanged,
+  });
 
-  final ValueChanged<OffreType?>? onFilterChanged;
+  final TextEditingController controller;
+  final int count;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.darkSurface, // vert forêt sombre — cohérence UI
+      color: AppColors.darkSurface,
       padding: const EdgeInsets.fromLTRB(
-        AppDimensions.sp20, AppDimensions.sp16,
-        AppDimensions.sp20, AppDimensions.sp20,
+        AppDimensions.sp20,
+        AppDimensions.sp16,
+        AppDimensions.sp20,
+        AppDimensions.sp20,
       ),
       child: Column(
         children: [
@@ -123,12 +192,11 @@ class _SearchHeader extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Offres d'emploi",
+                'Offres',
                 style: AppTextStyles.headingMedium.copyWith(
                   color: AppColors.darkTextPrimary,
                 ),
               ),
-              // Compteur — jaune ANPEJ : chiffre à mettre en valeur (urgence positive)
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppDimensions.sp8,
@@ -140,9 +208,9 @@ class _SearchHeader extends StatelessWidget {
                   border: Border.all(color: AppColors.accent500.withAlpha(60)),
                 ),
                 child: Text(
-                  '3 218 disponibles',
+                  '$count disponible${count > 1 ? 's' : ''}',
                   style: AppTextStyles.labelXSmall.copyWith(
-                    color: AppColors.accent500, // jaune ANPEJ
+                    color: AppColors.accent500,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -152,7 +220,6 @@ class _SearchHeader extends StatelessWidget {
           const SizedBox(height: AppDimensions.sp14),
           Row(
             children: [
-              // Champ de recherche — fond semi-transparent sur fond sombre
               Expanded(
                 child: Container(
                   height: 46,
@@ -172,34 +239,48 @@ class _SearchHeader extends StatelessWidget {
                         size: AppDimensions.iconMD,
                       ),
                       const SizedBox(width: AppDimensions.sp8),
-                      Text(
-                        'Poste, entreprise...',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.darkTextHint,
+                      Expanded(
+                        child: TextField(
+                          controller: controller,
+                          onChanged: onChanged,
+                          textInputAction: TextInputAction.search,
+                          cursorColor: AppColors.accent500,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.darkTextPrimary,
+                          ),
+
+                          decoration: InputDecoration(
+  isDense: true,
+  filled: false,                  // ← désactive le remplissage du thème
+  fillColor: Colors.transparent,  // ceinture + bretelles
+  border: InputBorder.none,
+  enabledBorder: InputBorder.none,
+  focusedBorder: InputBorder.none,
+  disabledBorder: InputBorder.none,
+  errorBorder: InputBorder.none,
+  focusedErrorBorder: InputBorder.none,
+  contentPadding: EdgeInsets.zero, // optionnel, colle mieux au parent
+  hintText: 'Poste, structure...',
+  hintStyle: AppTextStyles.bodyMedium.copyWith(
+    color: AppColors.darkTextHint,
+  ),
+),
                         ),
                       ),
+                      if (controller.text.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            controller.clear();
+                            onChanged('');
+                          },
+                          child: Icon(
+                            Icons.close_rounded,
+                            color: Colors.white.withAlpha(120),
+                            size: AppDimensions.iconSM,
+                          ),
+                        ),
                     ],
                   ),
-                ),
-              ),
-              const SizedBox(width: AppDimensions.sp10),
-
-              // Bouton filtre — marron institutionnel sur fond sombre
-              // secondary100 (fond beige doux) visible sur darkSurface
-              Container(
-                height: 46, width: 46,
-                decoration: BoxDecoration(
-                  color: AppColors.secondary800.withAlpha(50),
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-                  border: Border.all(
-                    color: AppColors.secondary400.withAlpha(80),
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.tune,
-                  color: AppColors.secondary100, // clair sur fond marron sombre
-                  size: AppDimensions.iconMD,
                 ),
               ),
             ],
@@ -213,13 +294,6 @@ class _SearchHeader extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Filter chips
 // ─────────────────────────────────────────────────────────────────────────────
-// Toujours sur fond sombre (continuité visuelle avec le header).
-//
-// Chip actif : fond vert ANPEJ primary400 + texte blanc.
-//   → Le filtre actif = contenu positif sélectionné = vert sémantique correct.
-//   (Contrairement aux boutons CTA institutionnels qui sont marron)
-//
-// Chip inactif : fond translucide blanc + texte darkTextSecondary.
 class _FilterChips extends StatelessWidget {
   const _FilterChips({
     required this.selectedType,
@@ -234,19 +308,19 @@ class _FilterChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // Même fond que le header — les chips font partie du bloc de recherche
       color: AppColors.darkSurface,
       padding: const EdgeInsets.fromLTRB(
-        AppDimensions.sp20, 0,
-        AppDimensions.sp20, AppDimensions.sp16,
+        AppDimensions.sp20,
+        0,
+        AppDimensions.sp20,
+        AppDimensions.sp16,
       ),
       child: SizedBox(
         height: 34,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: filters.length,
-          separatorBuilder: (_, __) =>
-              const SizedBox(width: AppDimensions.sp6),
+          separatorBuilder: (_, __) => const SizedBox(width: AppDimensions.sp6),
           itemBuilder: (ctx, i) {
             final f = filters[i];
             final isSelected = selectedType == f.type;
@@ -261,13 +335,10 @@ class _FilterChips extends StatelessWidget {
                   vertical: AppDimensions.sp6,
                 ),
                 decoration: BoxDecoration(
-                  // Actif : vert ANPEJ (filtre contenu = sémantique positive)
-                  // Inactif : translucide blanc sur fond forêt
                   color: isSelected
                       ? AppColors.primary400
                       : Colors.white.withAlpha(15),
-                  borderRadius:
-                      BorderRadius.circular(AppDimensions.radiusFull),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
                   border: Border.all(
                     color: isSelected
                         ? AppColors.primary400
@@ -283,9 +354,7 @@ class _FilterChips extends StatelessWidget {
                     color: isSelected
                         ? AppColors.white
                         : AppColors.darkTextSecondary,
-                    fontWeight: isSelected
-                        ? FontWeight.w700
-                        : FontWeight.w400,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                   ),
                 ),
               ),
@@ -293,6 +362,160 @@ class _FilterChips extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Status banner (offline / sync) — feedback offline-first non bloquant.
+// ─────────────────────────────────────────────────────────────────────────────
+class _StatusBanner extends StatelessWidget {
+  const _StatusBanner({
+    required this.isOffline,
+    required this.isSyncing,
+    required this.lastUpdated,
+  });
+
+  final bool isOffline;
+  final bool isSyncing;
+  final DateTime? lastUpdated;
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = isOffline || isSyncing;
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      child: !visible
+          ? const SizedBox(width: double.infinity)
+          : Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.pagePaddingH,
+                vertical: AppDimensions.sp8,
+              ),
+              color: isSyncing
+                  ? AppColors.primary100
+                  : AppColors.accent500.withAlpha(30),
+              child: Row(
+                children: [
+                  if (isSyncing)
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary800,
+                      ),
+                    )
+                  else
+                    const Icon(
+                      Icons.cloud_off_rounded,
+                      size: AppDimensions.iconSM,
+                      color: AppColors.secondary800,
+                    ),
+                  const SizedBox(width: AppDimensions.sp8),
+                  Expanded(
+                    child: Text(
+                      isSyncing
+                          ? 'Synchronisation des offres...'
+                          : 'Hors ligne — offres enregistrées affichées',
+                      style: AppTextStyles.labelXSmall.copyWith(
+                        color: isSyncing
+                            ? AppColors.primary800
+                            : AppColors.secondary800,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Error state (scrollable so pull-to-refresh works).
+// ─────────────────────────────────────────────────────────────────────────────
+class _ErrorList extends StatelessWidget {
+  const _ErrorList({required this.message, required this.onRetry});
+
+  final String message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 100),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppDimensions.sp32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withAlpha(20),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.error_outline_rounded,
+                      color: AppColors.error, size: 32),
+                ),
+                const SizedBox(height: AppDimensions.sp20),
+                Text(
+                  'Impossible de charger les offres',
+                  style: AppTextStyles.headingSmall
+                      .copyWith(color: AppColors.neutral800),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppDimensions.sp8),
+                Text(
+                  message,
+                  style: AppTextStyles.bodySmall
+                      .copyWith(color: AppColors.neutral500),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppDimensions.sp24),
+                SizedBox(
+                  height: AppDimensions.buttonHeightSM,
+                  child: Material(
+                    color: AppColors.primary400,
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.radiusMD),
+                    child: InkWell(
+                      onTap: onRetry,
+                      borderRadius:
+                          BorderRadius.circular(AppDimensions.radiusMD),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: AppDimensions.sp24),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.refresh_rounded,
+                                size: AppDimensions.iconSM,
+                                color: AppColors.white),
+                            SizedBox(width: AppDimensions.sp8),
+                            Text('Réessayer',
+                                style: AppTextStyles.buttonSmall),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

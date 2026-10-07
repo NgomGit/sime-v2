@@ -1,103 +1,61 @@
+// features/offres/presentation/providers/offres_provider.dart
+//
+// Liste unifiée « Offres » (emploi + formation) dérivée des notifiers
+// offline-first, mappée vers le modèle de présentation [OffreEntity] et filtrée
+// par type / recherche texte. Les drapeaux de chargement / hors-ligne / sync
+// restent lus directement sur les notifiers par l'écran (bandeau de statut).
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../domain/entities/offre_entity.dart';
-
-final _allOffres = [
-  OffreEntity(
-    id: 'o001',
-    title: 'Développeur Mobile Flutter',
-    company: 'Wave Mobile Money',
-    location: 'Dakar',
-    type: OffreType.emploi,
-    contractType: ContractType.cdi,
-    deadline: DateTime.now().add(const Duration(days: 15)),
-    educationLevel: 'Bac+4',
-    isFeatured: true,
-  ),
-  OffreEntity(
-    id: 'o002',
-    title: 'Agent terrain Agrijeunes',
-    company: 'Agrijeunes Sénégal',
-    location: 'Thiès',
-    type: OffreType.emploi,
-    contractType: ContractType.cdd,
-    deadline: DateTime.now().add(const Duration(days: 10)),
-  ),
-  OffreEntity(
-    id: 'o003',
-    title: 'Formation courte durée 3FPT',
-    company: '3FPT · National',
-    location: 'National',
-    type: OffreType.formation,
-    deadline: DateTime.now().add(const Duration(days: 5)),
-  ),
-  OffreEntity(
-    id: 'o004',
-    title: 'Développeur Full Stack',
-    company: 'Orange Sénégal',
-    location: 'Dakar',
-    type: OffreType.emploi,
-    contractType: ContractType.cdi,
-    deadline: DateTime.now().add(const Duration(days: 30)),
-    educationLevel: 'Bac+3',
-  ),
-  OffreEntity(
-    id: 'o005',
-    title: 'Formateur certifié FORCEN',
-    company: 'FORCEN',
-    location: 'Saint-Louis',
-    type: OffreType.formation,
-    deadline: DateTime.now().add(const Duration(days: 20)),
-  ),
-
-  // ── AJOUT DES OFFRES DE TYPE MIGRATION (SIME V2 - CSAEM) ──────────────────
-  OffreEntity(
-    id: 'o006',
-    title: 'Accompagnement et Mobilité Professionnelle Internationale',
-    company: 'CSAEM · ANPEJ',
-    location: 'Dakar (Pôle Migration)',
-    type: OffreType.migration,
-    deadline: DateTime.now().add(const Duration(days: 45)),
-    educationLevel: 'Tous niveaux',
-    isFeatured: true,
-  ),
-  OffreEntity(
-    id: 'o007',
-    title: 'Technicien de Maintenance Industrielle (Contrat International)',
-    company: 'CSAEM · Partenaire International',
-    location: 'International', // Prise en charge de la mobilité internationale
-    type: OffreType.migration,
-    contractType:
-        ContractType.cdd, // Souvent des contrats à durée déterminée au départ
-    deadline: DateTime.now().add(const Duration(days: 25)),
-    educationLevel: 'Bac+2 / BT',
-  ),
-];
+import '../mappers/offre_presentation_mapper.dart';
+import 'external_offers_notifier.dart';
+import 'job_offers_notifier.dart';
+import 'training_offers_notifier.dart';
 
 class OffresFilter {
   const OffresFilter({this.type, this.query = ''});
   final OffreType? type;
   final String query;
+
+  OffresFilter copyWith({OffreType? type, String? query, bool clearType = false}) =>
+      OffresFilter(
+        type: clearType ? null : (type ?? this.type),
+        query: query ?? this.query,
+      );
 }
 
 final offresFilterProvider =
     StateProvider<OffresFilter>((ref) => const OffresFilter());
 
-final offresListProvider = Provider<AsyncValue<List<OffreEntity>>>((ref) {
+/// Liste complète (emploi + formation), mappée puis filtrée.
+final offresListProvider = Provider<List<OffreEntity>>((ref) {
+  final jobs =
+      ref.watch(jobOffersNotifierProvider).offers.map(jobOfferToOffre);
+  final trainings = ref
+      .watch(trainingOffersNotifierProvider)
+      .offers
+      .map(trainingOfferToOffre);
+  final externals = ref
+      .watch(externalOffersNotifierProvider)
+      .offers
+      .map(externalOfferToOffre);
   final filter = ref.watch(offresFilterProvider);
-  var list = _allOffres;
+
+  var list = <OffreEntity>[...jobs, ...trainings, ...externals];
+
   if (filter.type != null) {
     list = list.where((o) => o.type == filter.type).toList();
   }
-  if (filter.query.isNotEmpty) {
-    final q = filter.query.toLowerCase();
+
+  final q = filter.query.trim().toLowerCase();
+  if (q.isNotEmpty) {
     list = list
-        .where(
-          (o) =>
-              o.title.toLowerCase().contains(q) ||
-              o.company.toLowerCase().contains(q) ||
-              o.location.toLowerCase().contains(q),
-        )
+        .where((o) =>
+            o.title.toLowerCase().contains(q) ||
+            o.company.toLowerCase().contains(q) ||
+            o.location.toLowerCase().contains(q))
         .toList();
   }
-  return AsyncData(list);
+
+  return list;
 });

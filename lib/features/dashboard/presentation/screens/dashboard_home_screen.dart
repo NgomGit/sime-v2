@@ -9,11 +9,13 @@ import 'package:sime_v2/core/design_system/tokens/app_dimensions.dart';
 import 'package:sime_v2/core/design_system/tokens/app_text_styles.dart';
 import 'package:sime_v2/core/design_system/widgets/s_card.dart';
 import 'package:sime_v2/core/design_system/widgets/s_shimer.dart';
-import 'package:sime_v2/core/design_system/widgets/s_status_badge.dart';
 import 'package:sime_v2/core/design_system/widgets/s_tag.dart';
 import 'package:sime_v2/features/auth/presentation/providers/login_provider.dart';
+import 'package:sime_v2/features/besoin/presentation/providers/my_subscriptions_notifier.dart';
+import 'package:sime_v2/features/besoin/presentation/widgets/dossier_progress_card.dart';
+import 'package:sime_v2/features/profile/presentation/providers/profile_completion_provider.dart';
+import 'package:sime_v2/features/profile/presentation/widgets/profile_completion_sheet.dart';
 import 'package:sime_v2/features/dashboard/presentation/providers/dashboard_provider.dart';
-import 'package:sime_v2/features/dossier/domain/entities/dossier_entity.dart';
 import 'package:sime_v2/features/offres/domain/entities/offre_entity.dart';
 import 'package:sime_v2/features/rendezvous/domain/entities/rdv_entity.dart';
 import 'package:sime_v2/features/rendezvous/presentation/providers/rdv_notifier.dart';
@@ -24,10 +26,12 @@ class DashboardHomeScreen extends ConsumerWidget {
     super.key,
     required this.navigationToProfile,
     required this.navigationToAgenda,
+    required this.navigationToDossier,
   });
 
   final VoidCallback navigationToProfile;
   final VoidCallback navigationToAgenda;
+  final VoidCallback navigationToDossier;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -71,8 +75,9 @@ class DashboardHomeScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(AppDimensions.pagePaddingH),
               sliver: SliverList.list(
                 children: [
-                  if (state.dossier != null)
-                    _DossierStatusCard(dossier: state.dossier!),
+                  _MesBesoinsSection(navigationToDossier: navigationToDossier),
+                  const SizedBox(height: AppDimensions.sp16),
+                  const _NouveauBesoinCta(),
                   const SizedBox(height: AppDimensions.sp16),
                   _NextRdvSection(navigationToAgenda: navigationToAgenda),
                   const SizedBox(height: AppDimensions.sp16),
@@ -80,6 +85,187 @@ class DashboardHomeScreen extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.sp48),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CTA « Exprimer un nouveau besoin » — point d'entrée du parcours de
+// souscription à un service du Guichet Unique (voir features/besoin).
+// ─────────────────────────────────────────────────────────────────────────────
+class _NouveauBesoinCta extends ConsumerWidget {
+  const _NouveauBesoinCta();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final completion = ref.watch(profileCompletionProvider);
+    final locked = !completion.canExpressBesoin;
+
+    // Transition douce entre l'état verrouillé (profil incomplet) et l'état
+    // actif, conforme au parti-pris d'animations soignées du projet.
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      child: locked
+          ? _LockedBesoinCta(
+              key: const ValueKey('besoin-cta-locked'),
+              progress: completion.progress,
+              onTap: () => showProfileCompletionSheet(context),
+            )
+          : _ActiveBesoinCta(
+              key: const ValueKey('besoin-cta-active'),
+              onTap: () => context.push(AppRoutes.nouveauBesoin),
+            ),
+    );
+  }
+}
+
+/// CTA actif — profil complet : lance directement le parcours besoin.
+class _ActiveBesoinCta extends StatelessWidget {
+  const _ActiveBesoinCta({super.key, required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SCard(
+      onTap: onTap,
+      color: AppColors.secondary50,
+      borderColor: AppColors.secondary100,
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.secondary800,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(Icons.add_rounded,
+                color: AppColors.white, size: AppDimensions.iconLG),
+          ),
+          const SizedBox(width: AppDimensions.sp12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Exprimer un besoin',
+                  style: AppTextStyles.labelLarge
+                      .copyWith(color: AppColors.neutral800),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Souscrivez à un service du Guichet Unique',
+                  style: AppTextStyles.bodySmall
+                      .copyWith(color: AppColors.neutral500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: AppColors.secondary400),
+        ],
+      ),
+    );
+  }
+}
+
+/// CTA verrouillé — profil incomplet : le parcours besoin est indisponible.
+/// L'appui ouvre la feuille guidée de complétion plutôt que le formulaire.
+class _LockedBesoinCta extends StatelessWidget {
+  const _LockedBesoinCta({
+    super.key,
+    required this.progress,
+    required this.onTap,
+  });
+
+  final double progress;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SCard(
+      onTap: onTap,
+      color: AppColors.neutral50,
+      borderColor: AppColors.border,
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.neutral100,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(Icons.lock_outline_rounded,
+                color: AppColors.neutral400, size: AppDimensions.iconLG),
+          ),
+          const SizedBox(width: AppDimensions.sp12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Exprimer un besoin',
+                  style: AppTextStyles.labelLarge
+                      .copyWith(color: AppColors.neutral500),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Complétez votre profil pour continuer',
+                  style: AppTextStyles.bodySmall
+                      .copyWith(color: AppColors.neutral400),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppDimensions.sp8),
+          _ProgressPill(progress: progress),
+        ],
+      ),
+    );
+  }
+}
+
+/// Pastille compacte « xx% » indiquant l'avancement de la complétion du profil.
+class _ProgressPill extends StatelessWidget {
+  const _ProgressPill({required this.progress});
+
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.sp8,
+        vertical: AppDimensions.sp4,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.secondary100,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.lock_outline_rounded,
+              size: 12, color: AppColors.secondary800),
+          const SizedBox(width: AppDimensions.sp4),
+          Text(
+            '${(progress * 100).round()}%',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.secondary800,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -162,133 +348,6 @@ class _TopBar extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Dossier status card (dark)
-// ─────────────────────────────────────────────────────────────────────────────
-class _DossierStatusCard extends StatelessWidget {
-  const _DossierStatusCard({required this.dossier});
-
-  final DossierEntity dossier;
-
-  String get _serviceLabel => switch (dossier.serviceType) {
-        ServiceType.emploiSalarie => 'Emploi salarié',
-        ServiceType.financement => 'Financement',
-        ServiceType.formation => 'Formation',
-        ServiceType.mobiliteInt => 'Mobilité internationale',
-        ServiceType.agrijeunes => 'Agrijeunes',
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    return SCard(
-      // isDark: true → darkSurfaceCard (#1A2412), cohérent avec l'onboarding
-      isDark: true,
-      padding: const EdgeInsets.all(AppDimensions.sp16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SStatusBadge(label: 'En traitement'),
-              const Spacer(),
-              Text(
-                '#${dossier.referenceNumber}',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.darkTextHint,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.sp12),
-          Text(
-            'Dossier $_serviceLabel',
-            style: AppTextStyles.labelLarge.copyWith(
-              color: AppColors.darkTextPrimary,
-            ),
-          ),
-          Text(
-            'Pôle Formation-Insertion · Dakar',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.darkTextSecondary,
-            ),
-          ),
-          const SizedBox(height: AppDimensions.sp16),
-
-          // Ligne progression
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Progression',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.darkTextHint,
-                ),
-              ),
-              // Pourcentage en vert ANPEJ — la progression = avenir positif
-              Text(
-                '${dossier.progressPercent}%',
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: AppColors.primary400,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.sp6),
-
-          // Barre de progression — vert ANPEJ sur fond sombre translucide
-          ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: dossier.progressRatio,
-              minHeight: 4,
-              backgroundColor: Colors.white.withAlpha(20),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                AppColors.primary400, // vert ANPEJ
-              ),
-            ),
-          ),
-          const SizedBox(height: AppDimensions.sp8),
-
-          // Segments d'étapes :
-          //   passées   → vert ANPEJ (accompli = positif)
-          //   courante  → jaune ANPEJ (en cours = attention / urgence douce)
-          //   futures   → blanc 10% (non encore atteint)
-          Row(
-            children: List.generate(dossier.totalSteps, (i) {
-              final Color c;
-              if (i < dossier.currentStep - 1) {
-                c = AppColors.primary400; // vert : étape passée
-              } else if (i == dossier.currentStep - 1) {
-                c = AppColors.accent500; // jaune : étape en cours
-              } else {
-                c = Colors.white.withAlpha(25); // neutre : étape future
-              }
-              return Expanded(
-                child: Container(
-                  height: 3,
-                  margin: const EdgeInsets.symmetric(horizontal: 2),
-                  decoration: BoxDecoration(
-                    color: c,
-                    borderRadius: BorderRadius.circular(1.5),
-                  ),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: AppDimensions.sp6),
-          Text(
-            'Étape ${dossier.currentStep} sur ${dossier.totalSteps} · Entretien conseiller',
-            style: AppTextStyles.caption.copyWith(
-              color: AppColors.darkTextHint,
-            ),
           ),
         ],
       ),
@@ -633,6 +692,135 @@ class _OffreItem extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section « Mes besoins sollicités » — souscriptions réelles du candidat
+// (mySubscriptionsNotifierProvider), partagée comme source de vérité avec
+// l'onglet « Candidatures » de Mon dossier. Offline-first : skeleton au premier
+// chargement, bandeau discret hors-ligne, état vide incitatif.
+// ─────────────────────────────────────────────────────────────────────────────
+class _MesBesoinsSection extends ConsumerStatefulWidget {
+  const _MesBesoinsSection({required this.navigationToDossier});
+
+  final VoidCallback navigationToDossier;
+
+  @override
+  ConsumerState<_MesBesoinsSection> createState() => _MesBesoinsSectionState();
+}
+
+class _MesBesoinsSectionState extends ConsumerState<_MesBesoinsSection> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(mySubscriptionsNotifierProvider.notifier).ensureLoaded();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(mySubscriptionsNotifierProvider);
+    final all = state.subscriptions;
+
+    // « Le dernier » besoin = le plus récent (id le plus élevé).
+    final latest = all.isEmpty
+        ? null
+        : all.reduce((a, b) => a.id >= b.id ? a : b);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Mes besoins sollicités',
+              style: AppTextStyles.headingSmall.copyWith(color: AppColors.neutral800),
+            ),
+            if (state.hasData)
+              GestureDetector(
+                onTap: widget.navigationToDossier,
+                child: Text(
+                  'Voir tout',
+                  style: AppTextStyles.labelMedium.copyWith(color: AppColors.primary600),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppDimensions.sp10),
+        if (state.isLoading && !state.hasData)
+          const _BesoinSkeleton()
+        else if (latest == null)
+          const _BesoinEmptyCard()
+        else
+          DossierProgressCard(
+            subscription: latest,
+            onTap: widget.navigationToDossier,
+          ),
+      ],
+    );
+  }
+}
+
+class _BesoinSkeleton extends StatelessWidget {
+  const _BesoinSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SShimmer(
+      width: double.infinity,
+      height: 180,
+      radius: AppDimensions.radiusLG,
+    );
+  }
+}
+
+class _BesoinEmptyCard extends ConsumerWidget {
+  const _BesoinEmptyCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final canExpress =
+        ref.watch(profileCompletionProvider.select((c) => c.canExpressBesoin));
+    return SCard(
+      onTap: () => canExpress
+          ? context.push(AppRoutes.nouveauBesoin)
+          : showProfileCompletionSheet(context),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.neutral50,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(Icons.assignment_outlined,
+                color: AppColors.neutral400, size: AppDimensions.iconMD),
+          ),
+          const SizedBox(width: AppDimensions.sp12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Aucun besoin sollicité',
+                  style: AppTextStyles.labelMedium.copyWith(color: AppColors.neutral600),
+                ),
+                Text(
+                  'Touchez pour en exprimer un',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.neutral400),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: AppColors.neutral200),
         ],
       ),
     );

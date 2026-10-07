@@ -12,8 +12,9 @@ import 'package:sime_v2/core/utils/country_token.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 /// Champ texte standard avec background blanc. Focus ring = marron [secondary800].
 /// Icône de validation = vert ANPEJ [success].
-// app_form_fields.dart
-
+///
+/// [errorText] : quand non nul, affiche un message d'erreur inline (bordure et
+/// texte rouges) — utilisé par la validation d'étape de l'inscription.
 class SField extends StatelessWidget {
   const SField({
     super.key,
@@ -23,13 +24,14 @@ class SField extends StatelessWidget {
     this.isValid = false,
     this.isPhone = false,
     this.keyboardType = TextInputType.text,
-    this.controller, 
-    this.onChanged,  
+    this.controller,
+    this.onChanged,
     this.obscureText = false,
     this.validator,
     this.suffixIcon,
-    this.autofillHints, 
+    this.autofillHints,
     this.readOnly = false, this.enabled = true,
+    this.errorText,
   });
  
   final String label, hint;
@@ -44,6 +46,7 @@ class SField extends StatelessWidget {
   final Iterable<String>? autofillHints;
   final bool readOnly;
   final bool enabled;
+  final String? errorText;
  
   @override
   Widget build(BuildContext context) {
@@ -69,6 +72,7 @@ class SField extends StatelessWidget {
           decoration: InputDecoration(
             filled: true,
             fillColor: AppColors.white,
+            errorText: errorText,
             hintText: hint,
             hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.neutral400),
             suffixIcon: suffixIcon ?? (isValid
@@ -107,6 +111,7 @@ class SPasswordField extends StatefulWidget {
     this.validator,
     this.autofillHints = const [AutofillHints.password],
     this.onChanged,
+    this.errorText,
   });
 
   final String label, hint;
@@ -114,6 +119,7 @@ class SPasswordField extends StatefulWidget {
   final String? Function(String?)? validator;
   final Iterable<String>? autofillHints;
   final void Function(String?)? onChanged;
+  final String? errorText;
   @override
   State<SPasswordField> createState() => _SPasswordFieldState();
 }
@@ -131,6 +137,7 @@ class _SPasswordFieldState extends State<SPasswordField> {
       validator: widget.validator,
       autofillHints: widget.autofillHints,
       keyboardType: TextInputType.visiblePassword,
+      errorText: widget.errorText,
       suffixIcon: IconButton(
         icon: Icon(
           _isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -205,6 +212,7 @@ class SPhoneField extends StatefulWidget {
     this.onPhoneNumberChanged,
     this.isValid = false,
     this.onChanged,
+    this.errorText,
   });
  
   final String label;
@@ -213,6 +221,7 @@ class SPhoneField extends StatefulWidget {
   final bool isValid;
   final void Function(String)? onChanged;
   final String? hint;
+  final String? errorText;
  
   @override
   State<SPhoneField> createState() => _SPhoneFieldState();
@@ -299,13 +308,16 @@ class _SPhoneFieldState extends State<SPhoneField> {
  
   @override
   Widget build(BuildContext context) {
-    final borderColor = widget.isValid
-        ? AppColors.success
-        : _isFocused
-            ? AppColors.secondary800
-            : AppColors.border;
+    final hasError = widget.errorText != null;
+    final borderColor = hasError
+        ? AppColors.error
+        : widget.isValid
+            ? AppColors.success
+            : _isFocused
+                ? AppColors.secondary800
+                : AppColors.border;
  
-    final borderWidth = _isFocused || widget.isValid
+    final borderWidth = _isFocused || widget.isValid || hasError
         ? AppDimensions.borderMedium
         : AppDimensions.borderThin;
  
@@ -405,6 +417,13 @@ class _SPhoneFieldState extends State<SPhoneField> {
             ],
           ),
         ),
+        if (hasError) ...[
+          const SizedBox(height: AppDimensions.sp4),
+          Text(
+            widget.errorText!,
+            style: AppTextStyles.caption.copyWith(color: AppColors.error),
+          ),
+        ],
       ],
     );
   }
@@ -423,16 +442,19 @@ class SDateField extends StatelessWidget {
     required this.onDateSelected,
     this.firstDate,
     this.lastDate,
+    this.errorText,
   });
 
   final String label, hint;
   final DateTime? selectedDate;
   final ValueChanged<DateTime> onDateSelected;
   final DateTime? firstDate, lastDate;
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
     final hasValue = selectedDate != null;
+    final hasError = errorText != null;
     final formattedDate = hasValue 
         ? DateFormat('dd/MM/yyyy').format(selectedDate!) 
         : hint;
@@ -474,7 +496,10 @@ class SDateField extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.white,
               borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(
+                color: hasError ? AppColors.error : AppColors.border,
+                width: hasError ? AppDimensions.borderMedium : AppDimensions.borderThin,
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -494,6 +519,13 @@ class SDateField extends StatelessWidget {
             ),
           ),
         ),
+        if (hasError) ...[
+          const SizedBox(height: AppDimensions.sp4),
+          Text(
+            errorText!,
+            style: AppTextStyles.caption.copyWith(color: AppColors.error),
+          ),
+        ],
       ],
     );
   }

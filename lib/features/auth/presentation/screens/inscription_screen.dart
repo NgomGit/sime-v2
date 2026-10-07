@@ -123,7 +123,25 @@ class InscriptionScreen extends ConsumerWidget {
                 currentStep: registrationState.currentStep,
                 totalSteps: _steps.length,
                 onNext: () {
-                  if (registrationState.currentStep < _steps.length) {
+                  final step = registrationState.currentStep;
+                  // Validation bloquante : on n'avance pas tant que les champs
+                  // obligatoires de l'étape ne sont pas remplis ET valides.
+                  if (!notifier.isStepValid(step)) {
+                    notifier.showValidationErrors();
+                    ScaffoldMessenger.of(context)
+                      ..hideCurrentSnackBar()
+                      ..showSnackBar(
+                        const SnackBar(
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: AppColors.error,
+                          content: Text(
+                            'Veuillez remplir correctement les champs obligatoires.',
+                          ),
+                        ),
+                      );
+                    return;
+                  }
+                  if (step < _steps.length) {
                     notifier.nextStep();
                   } else {
                     notifier.submit();

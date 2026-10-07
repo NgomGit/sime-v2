@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:sime_v2/core/design_system/tokens/app_colors.dart';
 import 'package:sime_v2/core/design_system/tokens/app_dimensions.dart';
 import 'package:sime_v2/core/design_system/tokens/app_text_styles.dart';
+import 'package:sime_v2/core/design_system/widgets/s_button.dart';
 
 class SSearchableDropdown<T> extends StatefulWidget {
   final String label;
@@ -19,6 +20,16 @@ class SSearchableDropdown<T> extends StatefulWidget {
   final bool enabled;
   final String? disabledHint;
 
+  /// Optionnel : recharge la liste des options (ex. référentiels chargés en
+  /// ligne). Quand cette fonction est fournie ET que la liste est vide, l'état
+  /// vide affiche un bouton « Réessayer » qui l'appelle puis met à jour la
+  /// liste affichée en direct — utile lorsque la connexion revient après avoir
+  /// été perdue. Doit renvoyer la liste fraîchement chargée.
+  final Future<List<T>> Function()? onRefresh;
+
+  /// Message d'erreur inline (validation). Bordure + texte rouges quand non nul.
+  final String? errorText;
+
   const SSearchableDropdown({
     super.key,
     required this.label,
@@ -32,6 +43,8 @@ class SSearchableDropdown<T> extends StatefulWidget {
     this.leadingIcon,
     this.enabled = true,
     this.disabledHint,
+    this.onRefresh,
+    this.errorText,
   });
 
   @override
@@ -57,6 +70,7 @@ class _SSearchableDropdownState<T> extends State<SSearchableDropdown<T>> {
           currentValue: widget.currentValue,
           labelExtractor: widget.labelExtractor,
           onSelected: widget.onSelected,
+          onRefresh: widget.onRefresh,
         );
       },
     );
@@ -68,6 +82,7 @@ class _SSearchableDropdownState<T> extends State<SSearchableDropdown<T>> {
   Widget build(BuildContext context) {
     final hasValue = widget.value.isNotEmpty;
     final isEnabled = widget.enabled;
+    final hasError = widget.errorText != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,14 +106,18 @@ class _SSearchableDropdownState<T> extends State<SSearchableDropdown<T>> {
               color: !isEnabled ? AppColors.neutral50 : AppColors.white,
               borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
               border: Border.all(
-                // Même logique de bordure que SField : fine et neutre,
-                // léger accent uniquement pendant l'ouverture du picker.
-                color: !isEnabled
-                    ? AppColors.border
-                    : _isFocusedVisual
-                        ? AppColors.secondary800
-                        : AppColors.border,
-                width: _isFocusedVisual ? AppDimensions.borderMedium : AppDimensions.borderThin,
+                // Même logique de bordure que SField : fine et neutre, léger
+                // accent à l'ouverture du picker, rouge en cas d'erreur.
+                color: hasError
+                    ? AppColors.error
+                    : !isEnabled
+                        ? AppColors.border
+                        : _isFocusedVisual
+                            ? AppColors.secondary800
+                            : AppColors.border,
+                width: (_isFocusedVisual || hasError)
+                    ? AppDimensions.borderMedium
+                    : AppDimensions.borderThin,
               ),
             ),
             child: Row(
@@ -141,6 +160,13 @@ class _SSearchableDropdownState<T> extends State<SSearchableDropdown<T>> {
             ),
           ),
         ),
+        if (hasError) ...[
+          const SizedBox(height: AppDimensions.sp4),
+          Text(
+            widget.errorText!,
+            style: AppTextStyles.caption.copyWith(color: AppColors.error),
+          ),
+        ],
       ],
     );
   }
@@ -154,6 +180,7 @@ class _SearchModalContent<T> extends StatefulWidget {
   final T? currentValue;
   final String Function(T) labelExtractor;
   final ValueChanged<T> onSelected;
+  final Future<List<T>> Function()? onRefresh;
 
   const _SearchModalContent({
     required this.title,
@@ -162,6 +189,7 @@ class _SearchModalContent<T> extends StatefulWidget {
     required this.currentValue,
     required this.labelExtractor,
     required this.onSelected,
+    this.onRefresh,
   });
 
   @override
@@ -169,31 +197,56 @@ class _SearchModalContent<T> extends StatefulWidget {
 }
 
 class _SearchModalContentState<T> extends State<_SearchModalContent<T>> {
+  late List<T> _options;
   late List<T> _filteredOptions;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   bool _hasQuery = false;
+  bool _refreshing = false;
 
   @override
   void initState() {
     super.initState();
+    _options = widget.options;
     _filteredOptions = widget.options;
     _searchController.addListener(_onSearchChanged);
   }
 
-  void _onSearchChanged() {
+  void _onSearchChanged() => _applyFilter();
+
+  void _applyFilter() {
     final query = _searchController.text.toLowerCase().trim();
     setState(() {
       _hasQuery = query.isNotEmpty;
       if (query.isEmpty) {
-        _filteredOptions = widget.options;
+        _filteredOptions = _options;
       } else {
-        _filteredOptions = widget.options.where((option) {
+        _filteredOptions = _options.where((option) {
           final label = widget.labelExtractor(option).toLowerCase();
           return label.contains(query);
         }).toList();
       }
     });
+  }
+
+  /// Recharge les options via [widget.onRefresh] (si fourni) et met à jour la
+  /// liste affichée en direct. Pensé pour le cas hors-ligne : l'utilisateur
+  /// réessaie une fois la connexion revenue, sans fermer le sélecteur.
+  Future<void> _handleRefresh() async {
+    final refresh = widget.onRefresh;
+    if (refresh == null || _refreshing) return;
+    setState(() => _refreshing = true);
+    try {
+      final fresh = await refresh();
+      if (!mounted) return;
+      setState(() {
+        _options = fresh;
+        _refreshing = false;
+      });
+      _applyFilter();
+    } catch (_) {
+      if (mounted) setState(() => _refreshing = false);
+    }
   }
 
   void _clearSearch() {
@@ -212,6 +265,70 @@ class _SearchModalContentState<T> extends State<_SearchModalContent<T>> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  /// État vide, centré verticalement. Distingue deux cas :
+  ///  • aucune donnée chargée du tout (souvent hors-ligne) → invite + bouton
+  ///    « Réessayer » si [widget.onRefresh] est fourni ;
+  ///  • recherche sans correspondance → invite à changer de mot-clé.
+  Widget _buildEmptyState() {
+    final noData = _options.isEmpty;
+    final canRefresh = widget.onRefresh != null && noData;
+
+    return SizedBox(
+      height: 300,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppDimensions.sp32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.neutral50,
+                ),
+                child: Icon(
+                  noData ? Icons.cloud_off_rounded : Icons.search_off_rounded,
+                  size: 28,
+                  color: AppColors.neutral300,
+                ),
+              ),
+              const SizedBox(height: AppDimensions.sp12),
+              Text(
+                noData ? 'Aucune donnée disponible' : 'Aucun résultat trouvé',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.neutral600,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppDimensions.sp4),
+              Text(
+                noData
+                    ? 'Vérifiez votre connexion, puis réessayez.'
+                    : 'Essayez avec un autre mot-clé',
+                style: AppTextStyles.caption.copyWith(color: AppColors.neutral400),
+                textAlign: TextAlign.center,
+              ),
+              if (canRefresh) ...[
+                const SizedBox(height: AppDimensions.sp16),
+                SButton(
+                  label: 'Réessayer',
+                  variant: SButtonVariant.outline,
+                  size: SButtonSize.medium,
+                  leadingIcon: Icons.refresh_rounded,
+                  fullWidth: false,
+                  isLoading: _refreshing,
+                  onPressed: _handleRefresh,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -333,43 +450,10 @@ class _SearchModalContentState<T> extends State<_SearchModalContent<T>> {
 
               const Divider(color: AppColors.neutral100, height: AppDimensions.sp16),
 
-              // Liste des résultats
+              // Liste des résultats (ou état vide centré)
               Flexible(
                 child: _filteredOptions.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.all(AppDimensions.sp32),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.neutral50,
-                              ),
-                              child: const Icon(
-                                Icons.search_off_rounded,
-                                size: 28,
-                                color: AppColors.neutral300,
-                              ),
-                            ),
-                            const SizedBox(height: AppDimensions.sp12),
-                            Text(
-                              'Aucun résultat trouvé',
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                color: AppColors.neutral600,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: AppDimensions.sp4),
-                            Text(
-                              'Essayez avec un autre mot-clé',
-                              style: AppTextStyles.caption.copyWith(color: AppColors.neutral400),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      )
+                    ? _buildEmptyState()
                     : ListView.separated(
                         shrinkWrap: true,
                         padding: const EdgeInsets.only(bottom: AppDimensions.sp16),

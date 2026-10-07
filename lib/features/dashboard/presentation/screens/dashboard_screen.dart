@@ -11,19 +11,26 @@ import '../../../../core/design_system/tokens/app_colors.dart';
 import '../../presentation/widgets/sime_bottom_nav.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
-  const DashboardScreen({super.key});
+  const DashboardScreen({super.key, this.initialIndex = 0});
+
+  /// Onglet affiché à l'ouverture (0 = Accueil, 2 = Agenda, 3 = Mon dossier…).
+  /// Permet à d'autres écrans de router directement vers un onglet précis —
+  /// ex. après l'enregistrement d'un besoin, on ouvre le dashboard sur
+  /// « Mon dossier » (index 3) tout en conservant la barre de navigation.
+  final int initialIndex;
 
   @override
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  int currentIndex = 0;
+  late int currentIndex = widget.initialIndex;
 
   List<Widget> get _screens => [
     DashboardHomeScreen(
       navigationToProfile: navigateToProfile,
       navigationToAgenda: navigateToAgenda,
+      navigationToDossier: navigateToDossier,
     ),
     const OffresScreen(),
     const RendezVousScreen(),
@@ -40,6 +47,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void navigateToAgenda() {
     setState(() {
       currentIndex = 2; // Index de l'agenda dans la liste des écrans
+    });
+  }
+
+  void navigateToDossier() {
+    setState(() {
+      currentIndex = 3; // Index de « Mon dossier » dans la liste des écrans
     });
   }
 

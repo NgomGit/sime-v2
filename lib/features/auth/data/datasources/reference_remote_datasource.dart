@@ -1,10 +1,42 @@
 import '../../../../core/network/api_client.dart';
+import '../../../profile/data/models/applicant_model.dart' show OfficeModel;
 import '../models/reference_model.dart';
 
 class ReferenceRemoteDataSource {
   final ApiClient _apiClient;
 
   ReferenceRemoteDataSource(this._apiClient);
+
+  /// Bureaux (Guichet Unique) — GET /admin/api/offices?pageable=false&search=status==true.
+  /// ⚠️ Préfixe `/admin/...` (et non `/param/...`) confirmé par l'endpoint réel.
+  Future<List<OfficeModel>> getOffices() async {
+    final response = await _apiClient.dio.get(
+      '/admin/api/offices',
+      queryParameters: {'pageable': false, 'search': 'status==true'},
+    );
+    final list = response.data['data'] as List<dynamic>? ?? [];
+    return list
+        .map((e) => OfficeModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Types de handicap — GET /param/api/disability-types.
+  Future<List<ReferenceModel>> getDisabilityTypes() async {
+    final response = await _apiClient.dio.get(
+      '/param/api/disability-types',
+      queryParameters: {'pageable': false, 'search': 'status==true'},
+    );
+    return _parseList(response.data['data']);
+  }
+
+  /// Statuts matrimoniaux — GET /param/api/marital-statuses.
+  Future<List<ReferenceModel>> getMaritalStatuses() async {
+    final response = await _apiClient.dio.get(
+      '/param/api/marital-statuses',
+      queryParameters: {'pageable': false, 'search': 'status==true'},
+    );
+    return _parseList(response.data['data']);
+  }
 
   /// Récupère la liste globale des pays
   Future<List<ReferenceModel>> getReferenceList(String name) async {

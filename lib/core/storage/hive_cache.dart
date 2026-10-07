@@ -11,7 +11,10 @@ abstract final class HiveCacheKeys {
   static const applicantMe      = 'applicant_me';
   static const subscriptionsMe  = 'subscriptions_me';
   static const rdvsMe           = 'rdvs_me';
+  static const claimRequestsMe  = 'claim_requests_me';
   static const jobOffers        = 'job_offers';
+  static const trainingOffers   = 'training_offers';
+  static const externalOffers   = 'external_offers';
   static const services         = 'services';
   static const servicesForMe    = 'services_for_me';
   static const countries        = 'countries';
@@ -19,9 +22,25 @@ abstract final class HiveCacheKeys {
   static const educationLevels  = 'education_levels';
   static const degrees          = 'degrees';
 
+  // ── Parcours « Nouveau besoin » (souscription à un service) ───────────────
+  static const typeServicesPossible = 'type_services_possible';
+
   /// Clés paramétrées — inclure l'ID dans la clé pour un cache par entité.
   static String departments(int regionId)     => 'departments_$regionId';
   static String municipalities(int deptId)    => 'municipalities_$deptId';
+
+  /// Détail d'une offre d'emploi / de formation — cache par identifiant pour
+  /// qu'une offre déjà consultée reste disponible hors-ligne individuellement.
+  static String jobOffer(int id)      => 'job_offer_$id';
+  static String trainingOffer(int id) => 'training_offer_$id';
+
+  /// Structures partenaires possibles pour une catégorie de service donnée.
+  static String partnerServicesPossible(int typeServiceId) =>
+      'partner_services_possible_$typeServiceId';
+
+  /// Sous-services possibles pour un couple (structure, catégorie).
+  static String servicesPossible(int partnerServiceId, int typeServiceId) =>
+      'services_possible_${partnerServiceId}_$typeServiceId';
 }
 
 /// Service de cache local basé sur Hive.

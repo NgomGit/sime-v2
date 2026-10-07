@@ -23,35 +23,27 @@ class ProfileMenuCard extends StatelessWidget {
       ),
       (
         Icons.badge_outlined,
-        'Pièce d\'identité',
+        "Pièce d'identité",
         'CNI ou Passeport · Recto/Verso',
         AppColors.secondary100, // marron doux institutionnel
         AppColors.secondary600, // marron institutionnel
         () => context.push(AppRoutes.editIdentityDocument),
       ),
       (
-        Icons.notifications_none_outlined,
-        'Notifications',
-        'Alertes offres & rendez-vous',
-        AppColors.bleuANPEJBg,  // bleu doux ANPEJ
-        AppColors.bleuANPEJ,    // bleu ANPEJ
-        () {},
-      ),
-      (
-        Icons.lock_outline_rounded,
-        'Sécurité',
-        'Mot de passe · Biométrie',
-        AppColors.accent100,    // jaune doux ANPEJ
-        AppColors.accent800,    // jaune sombre ANPEJ
-        () {},
-      ),
-      (
-        Icons.language_rounded,
-        'Langue',
-        'Français',
+        Icons.forum_outlined,
+        'Réclamation',
+        'Échangez avec un conseiller ANPEJ',
         AppColors.secondary100, // marron doux institutionnel
         AppColors.secondary600, // marron institutionnel
-        () {},
+        () => context.push(AppRoutes.reclamations),
+      ),
+      (
+        Icons.settings_outlined,
+        'Paramètres',
+        'Notifications · Sécurité · Langue',
+        AppColors.bleuANPEJBg,  // bleu doux ANPEJ
+        AppColors.bleuANPEJ,    // bleu ANPEJ
+        () => context.push(AppRoutes.parametres),
       ),
     ];
  

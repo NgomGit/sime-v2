@@ -6,6 +6,8 @@ import 'package:sime_v2/features/auth/domain/entities/reference_entity.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sime_v2/features/auth/data/datasources/reference_remote_datasource.dart';
 import 'package:sime_v2/features/auth/providers/auth_providers.dart'; // Où se trouve ton referenceDataSourceProvider
+import 'package:sime_v2/features/profile/data/models/applicant_model.dart' show OfficeModel;
+import 'package:sime_v2/features/profile/domain/entities/applicant_entity.dart' show OfficeEntity;
 
 class ProfileReferencesState {
   final List<CountryEntity> countries;
@@ -18,6 +20,11 @@ class ProfileReferencesState {
   final List<ReferenceEntity> educationLevels;
   final List<ReferenceEntity> fieldsOfStudy;
 
+  // Référentiels identité / affiliation
+  final List<OfficeEntity> offices;
+  final List<ReferenceEntity> disabilityTypes;
+  final List<ReferenceEntity> maritalStatuses;
+
   final bool isLoading;
   final String? errorMessage;
 
@@ -29,6 +36,9 @@ class ProfileReferencesState {
     this.municipalities = const [],
     this.educationLevels = const [],
     this.fieldsOfStudy = const [],
+    this.offices = const [],
+    this.disabilityTypes = const [],
+    this.maritalStatuses = const [],
     this.isLoading = false,
     this.errorMessage,
   });
@@ -41,6 +51,9 @@ class ProfileReferencesState {
     List<MunicipalityEntity>? municipalities,
     List<ReferenceEntity>? educationLevels,
     List<ReferenceEntity>? fieldsOfStudy,
+    List<OfficeEntity>? offices,
+    List<ReferenceEntity>? disabilityTypes,
+    List<ReferenceEntity>? maritalStatuses,
     bool? isLoading,
     String? errorMessage,
   }) {
@@ -52,6 +65,9 @@ class ProfileReferencesState {
       municipalities: municipalities ?? this.municipalities,
       educationLevels: educationLevels ?? this.educationLevels,
       fieldsOfStudy: fieldsOfStudy ?? this.fieldsOfStudy,
+      offices: offices ?? this.offices,
+      disabilityTypes: disabilityTypes ?? this.disabilityTypes,
+      maritalStatuses: maritalStatuses ?? this.maritalStatuses,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage ?? this.errorMessage,
     );
@@ -101,6 +117,18 @@ class ProfileReferencesNotifier extends StateNotifier<ProfileReferencesState> {
         print("🚨 Erreur getFieldsOfStudy: $e");
         return <ReferenceModel>[];
       }),
+      _referenceDataSource.getOffices().catchError((e) {
+        print("🚨 Erreur getOffices: $e");
+        return <OfficeModel>[];
+      }),
+      _referenceDataSource.getDisabilityTypes().catchError((e) {
+        print("🚨 Erreur getDisabilityTypes: $e");
+        return <ReferenceModel>[];
+      }),
+      _referenceDataSource.getMaritalStatuses().catchError((e) {
+        print("🚨 Erreur getMaritalStatuses: $e");
+        return <ReferenceModel>[];
+      }),
     ]);
 
     // 2. Mappings et conversions sécurisés pour le Domain Layer
@@ -130,6 +158,22 @@ class ProfileReferencesNotifier extends StateNotifier<ProfileReferencesState> {
         .map((model) => ReferenceEntity(id: model.id, name: model.name))
         .toList();
 
+    // Bureaux / handicaps / statuts matrimoniaux.
+    // On recopie dans de vraies List<Entity> (les modèles sont des sous-types) :
+    // indispensable pour que `.where`/`.contains` des menus déroulants ne lèvent
+    // pas de TypeError sur une liste remontée en type parent (voir le même
+    // écueil corrigé sur les souscriptions).
+    final List<OfficeEntity> mappedOffices =
+        List<OfficeEntity>.from(results[5] as List<OfficeModel>);
+    final List<ReferenceEntity> mappedDisabilities =
+        (results[6] as List<ReferenceModel>)
+            .map((model) => ReferenceEntity(id: model.id, name: model.name))
+            .toList();
+    final List<ReferenceEntity> mappedMaritalStatuses =
+        (results[7] as List<ReferenceModel>)
+            .map((model) => ReferenceEntity(id: model.id, name: model.name))
+            .toList();
+
     // 3. Mise à jour de l'état avec les types parfaits
     state = state.copyWith(
       isLoading: false,
@@ -138,6 +182,9 @@ class ProfileReferencesNotifier extends StateNotifier<ProfileReferencesState> {
       regions: mappedRegions,
       educationLevels: mappedLevels,
       fieldsOfStudy: mappedFields,
+      offices: mappedOffices,
+      disabilityTypes: mappedDisabilities,
+      maritalStatuses: mappedMaritalStatuses,
     );
     
     print("✅ Tous les référentiels ont été chargés et convertis avec succès !");

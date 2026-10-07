@@ -147,6 +147,7 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
                 controller: _firstNameController,
                 label: 'Prénom *',
                 hint: 'Mamadou',
+                errorText: notifier.firstNameError,
                 onChanged: (val) => notifier.updateField(firstName: val),
               ),
             ),
@@ -156,6 +157,7 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
                 controller: _lastNameController,
                 label: 'Nom *',
                 hint: 'Diallo',
+                errorText: notifier.lastNameError,
                 onChanged: (val) => notifier.updateField(lastName: val),
               ),
             ),
@@ -192,6 +194,7 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
               child: SDateField(
                 label: 'Date de naissance *',
                 hint: '15/03/2000',
+                errorText: notifier.dateBirthError,
                 selectedDate: _selectedDate,
                 onDateSelected: (date) {
                   setState(() => _selectedDate = date);
@@ -205,6 +208,7 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
                 controller: _placeOfBirthController,
                 label: 'Lieu de naissance *',
                 hint: 'Dakar',
+                errorText: notifier.placeBirthError,
                 onChanged: (val) => notifier.updateField(placeBirth: val),
               ),
             ),
@@ -215,6 +219,7 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
           controller: _cinController,
           label: 'Numéro CIN *',
           hint: '1456199900268',
+          errorText: notifier.cniError,
           onChanged: (val) => notifier.updateField(cni: val),
         ),
         const SizedBox(height: AppDimensions.sp14),
@@ -222,6 +227,7 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
           controller: _addressController,
           label: 'Adresse de résidence *',
           hint: 'Senegal Dakar Scat urbam N° E55',
+          errorText: notifier.addressError,
           onChanged: (val) => notifier.updateField(residAddress: val),
         ),
         const SizedBox(height: AppDimensions.sp14),
@@ -232,11 +238,16 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
           pickerTitle: 'Sélectionner une région',
           searchHint: 'Rechercher une région...',
           leadingIcon: Icons.map_outlined,
+          errorText: notifier.regionError,
           value: selectedRegion != null ? _cleanGeoName(selectedRegion.name) : '',
           currentValue: selectedRegion,
           options: formState.regions,
           labelExtractor: (region) => _cleanGeoName(region.name),
           onSelected: (region) => notifier.onRegionChanged(region.id),
+          onRefresh: () async {
+            await notifier.reloadReferences();
+            return ref.read(registrationNotifierProvider).regions;
+          },
         ),
         const SizedBox(height: AppDimensions.sp14),
 
@@ -246,6 +257,7 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
           pickerTitle: 'Sélectionner un département',
           searchHint: 'Rechercher un département...',
           leadingIcon: Icons.location_city_outlined,
+          errorText: notifier.departmentError,
           enabled: hasSelectedRegion,
           disabledHint: 'Choisir une région d\'abord',
           value: selectedDepartment != null ? _cleanGeoName(selectedDepartment.name) : '',
@@ -253,6 +265,14 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
           options: filteredDepartments,
           labelExtractor: (dept) => _cleanGeoName(dept.name),
           onSelected: (dept) => notifier.onDepartmentChanged(dept.id),
+          onRefresh: () async {
+            final regionId = ref.read(registrationNotifierProvider).residRegionId;
+            await notifier.onRegionChanged(regionId);
+            final st = ref.read(registrationNotifierProvider);
+            return st.departments
+                .where((d) => d.region?.id == st.residRegionId)
+                .toList();
+          },
         ),
         const SizedBox(height: AppDimensions.sp14),
 
@@ -262,11 +282,16 @@ class _StepOneFormState extends ConsumerState<StepOneForm> {
           pickerTitle: 'Sélectionner une nationalité',
           searchHint: 'Rechercher une nationalité...',
           leadingIcon: Icons.flag_outlined,
+          errorText: notifier.nationalityError,
           value: selectedNationality != null ? selectedNationality.name : '',
           currentValue: selectedNationality,
           options: formState.nationalities,
           labelExtractor: (nationality) => nationality.name,
           onSelected: (nationality) => notifier.updateField(nationalityId: nationality.id),
+          onRefresh: () async {
+            await notifier.reloadReferences();
+            return ref.read(registrationNotifierProvider).nationalities;
+          },
         ),
       ],
     );

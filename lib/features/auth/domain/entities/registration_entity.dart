@@ -29,6 +29,8 @@ class RegistrationEntity {
   final bool isLoading;
   final String? errorMessage;
   final bool isSuccess;
+  /// Active l'affichage des erreurs de validation dans les formulaires d'étape.
+  final bool showErrors;
 
   // Stockage des données de référentiels chargées depuis l'API
   final List<CountryModel> countries;
@@ -62,6 +64,7 @@ class RegistrationEntity {
     this.isLoading = false,
     this.errorMessage,
     this.isSuccess = false,
+    this.showErrors = false,
     this.countries = const [],
     this.regions = const [],
     this.departments = const [],
@@ -99,6 +102,7 @@ class RegistrationEntity {
     bool? isLoading,
     String? errorMessage,
     bool? isSuccess,
+    bool? showErrors,
   }) {
     return RegistrationEntity(
       currentStep: currentStep ?? this.currentStep,
@@ -130,6 +134,7 @@ class RegistrationEntity {
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
       isSuccess: isSuccess ?? this.isSuccess,
+      showErrors: showErrors ?? this.showErrors,
     );
   }
 }

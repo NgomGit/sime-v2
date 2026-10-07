@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
@@ -41,8 +43,21 @@ class LoggingInterceptor extends Interceptor {
     debugPrint('💥 STATUS : ${err.response?.statusCode} ${err.response?.statusMessage}');
     if (err.response?.data != null) {
       debugPrint('💥 DETAIL : ${err.response?.data}');
-    } else {
-      debugPrint('💥 MESSAGE: ${err.message}');
+    }
+    // La cause sous-jacente (err.error) est ce qui explique réellement un
+    // DioExceptionType.unknown : SocketException, HandshakeException, etc.
+    // err.message est souvent null dans ce cas — d'où l'ancien log inutile.
+    debugPrint('💥 MESSAGE: ${err.message}');
+    debugPrint('💥 CAUSE  : ${err.error} (${err.error.runtimeType})');
+    final cause = err.error;
+    if (cause is SocketException) {
+      debugPrint('🔎 HINT   : SocketException → hôte/route injoignable ou DNS. '
+          'osError=${cause.osError}, address=${cause.address}');
+    } else if (cause is HandshakeException) {
+      debugPrint('🔎 HINT   : HandshakeException → certificat TLS refusé par '
+          "Android (chaîne de certificats incomplète côté serveur, ou horloge "
+          "de l'appareil incorrecte). iOS complète la chaîne automatiquement, "
+          'pas Android.');
     }
     debugPrint('=====================\n');
     return super.onError(err, handler);

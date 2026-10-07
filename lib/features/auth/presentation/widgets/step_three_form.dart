@@ -41,6 +41,9 @@ class _StepThreeFormState extends ConsumerState<StepThreeForm> {
 
   @override
   Widget build(BuildContext context) {
+    // On observe l'état pour se reconstruire quand la validation s'active
+    // (affichage des erreurs) et quand les champs changent.
+    ref.watch(registrationNotifierProvider);
     final notifier = ref.read(registrationNotifierProvider.notifier);
 
     return Column(
@@ -54,6 +57,7 @@ class _StepThreeFormState extends ConsumerState<StepThreeForm> {
           controller: _phoneController,
           label: 'Numéro de téléphone *',
           hint: '+221775462058',
+          errorText: notifier.phoneError,
           onPhoneNumberChanged: (val) => notifier.updateField(phone: val),
         ),
         const SizedBox(height: AppDimensions.sp14),
@@ -61,6 +65,7 @@ class _StepThreeFormState extends ConsumerState<StepThreeForm> {
           controller: _emailController,
           label: 'Adresse Email *',
           hint: 'mamadou.diallo@email.com',
+          errorText: notifier.emailError,
           onChanged: (val) => notifier.updateField(email: val),
           keyboardType: TextInputType.emailAddress,
         ),
@@ -69,6 +74,7 @@ class _StepThreeFormState extends ConsumerState<StepThreeForm> {
           controller: _usernameController,
           label: 'Nom d\'utilisateur *',
           hint: 'mamadou.diallo',
+          errorText: notifier.usernameError,
           onChanged: (val) => notifier.updateField(username: val),
         ),
         const SizedBox(height: AppDimensions.sp14),
@@ -76,7 +82,7 @@ class _StepThreeFormState extends ConsumerState<StepThreeForm> {
           controller: _passwordController,
           label: 'Mot de passe *',
           hint: '••••••••••••',
-
+          errorText: notifier.passwordError,
           onChanged: (val) => notifier.updateField(password: val),
         ),
       ],

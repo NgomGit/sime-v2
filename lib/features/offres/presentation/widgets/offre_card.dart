@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:sime_v2/core/const/app_routes.dart';
@@ -9,8 +10,9 @@ import 'package:sime_v2/core/design_system/widgets/s_button.dart';
 import 'package:sime_v2/core/design_system/widgets/s_card.dart';
 import 'package:sime_v2/core/design_system/widgets/s_tag.dart';
 import 'package:sime_v2/features/offres/domain/entities/offre_entity.dart';
+import 'package:sime_v2/features/offres/presentation/providers/applied_offers_provider.dart';
 
-class OffreCard extends StatelessWidget {
+class OffreCard extends ConsumerWidget {
   const OffreCard({super.key, required this.offre});
   final OffreEntity offre;
 
@@ -26,6 +28,11 @@ class OffreCard extends StatelessWidget {
             AppColors.bleuANPEJ, // Bleu ANPEJ
             Icons.school_outlined
           ),
+        OffreType.externe => (
+            AppColors.secondary100, // Fond marron clair
+            AppColors.secondary600, // Marron institutionnel
+            Icons.public_outlined
+          ),
         OffreType.financement => (
             AppColors.accent100, // Fond jaune/orange clair
             AppColors.accent500, // Jaune/Orange ANPEJ
@@ -39,11 +46,14 @@ class OffreCard extends StatelessWidget {
       };
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final (bg, fg, icon) = _typeStyle;
     final contractLabel = offre.contractType?.name.toUpperCase();
+    final isApplied = ref.watch(appliedOffersProvider).contains(offre.id);
 
     return SCard(
+      // Toute la carte est cliquable → ouvre le détail de l'offre.
+      onTap: () => context.push(AppRoutes.offreDetails, extra: offre.id),
       // Si l'offre est "À la une", on applique un fond léger de sa propre couleur thématique
       color: offre.isFeatured ? AppColors.white : AppColors.white,
       borderColor: offre.isFeatured ? fg.withValues(alpha: 0.6) : AppColors.border,
@@ -169,14 +179,23 @@ class OffreCard extends StatelessWidget {
                 size: SButtonSize.small,
               ),
 
-              const SizedBox(width: 8,),
-              // Bouton principal : "Postuler" dynamique selon la couleur dominante de l'offre
+              const SizedBox(width: 8),
 
-              SButton(
-                label: 'Postuler', 
-                onPressed: () => {},
-                fullWidth: false,
-                size: SButtonSize.small,
+              // Déjà postulé → tag informatif (pas de nouvelle candidature) ;
+              // sinon bouton « Postuler » qui ouvre le détail pour finaliser.
+              if (isApplied)
+                STag(
+                  label: 'Déjà postulé',
+                  backgroundColor: AppColors.primary100,
+                  textColor: AppColors.primary800,
+                )
+              else
+                SButton(
+                  label: 'Postuler',
+                  onPressed: () =>
+                      context.push(AppRoutes.offreDetails, extra: offre.id),
+                  fullWidth: false,
+                  size: SButtonSize.small,
                 ),
             ],
           ),

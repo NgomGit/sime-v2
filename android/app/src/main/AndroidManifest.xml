@@ -1,8 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Requis en build release : Flutter n'ajoute INTERNET que dans les
+         manifestes debug/profile. Sans cette ligne, l'app release n'a aucun
+         accès réseau. ACCESS_NETWORK_STATE (utilisé par connectivity_plus) est
+         fusionné automatiquement depuis le manifeste de la librairie. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="sime_v2"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round">
         <activity
             android:name=".MainActivity"
             android:exported="true"

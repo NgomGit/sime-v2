@@ -26,7 +26,13 @@ dependencies:
   cached_network_image: ^3.3.1
   shimmer: ^3.0.0
   flutter_svg: ^2.0.10+1
-  local_auth: ^2.2.0
+  # local_auth retiré : dépendance non utilisée dans le code, qui tirait
+  # transitivement `local_auth_darwin` → `package:objective_c` (dylib FFI).
+  # Sur simulateur iOS ce framework n'était pas embarqué → crash au démarrage
+  # de la VM Dart ("Failed to load dynamic library 'objective_c.framework'").
+  # À réintroduire (avec CocoaPods ≥ 1.16.2 + pod install propre) le jour où la
+  # biométrie sera réellement implémentée.
+  # local_auth: ^2.2.0
   freezed_annotation: ^2.4.1
   json_annotation: ^4.9.0
   equatable: ^2.0.5
@@ -58,4 +64,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/certs/
     # - assets/icons/

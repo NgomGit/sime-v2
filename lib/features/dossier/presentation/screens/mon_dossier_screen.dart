@@ -119,8 +119,8 @@ class MonDossierScreen extends ConsumerWidget {
               ],
               body: TabBarView(
                 children: [
-                  DossierStatutTab(state: state),
-                  CandidaturesTab(state: state),
+                  const DossierStatutTab(),
+                  const CandidaturesTab(),
                   HistoriqueTab(state: state),
                 ],
               ),

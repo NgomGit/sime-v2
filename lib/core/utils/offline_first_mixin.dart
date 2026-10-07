@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 
@@ -120,11 +122,7 @@ mixin OfflineFirstMixin {
 
   Failure _mapDioError(DioException e) {
     final statusCode = e.response?.statusCode;
-    final serverMessage =
-        e.response?.data is Map<String, dynamic>
-            ? (e.response!.data as Map<String, dynamic>)['message']
-                ?.toString()
-            : null;
+    final serverMessage = _extractServerMessage(e.response?.data);
 
     if (statusCode != null) {
       return switch (statusCode) {
@@ -148,6 +146,88 @@ mixin OfflineFirstMixin {
           const UnknownFailure(message: 'Requête annulée'),
       _                                  => const NetworkFailure(message: 'Erreur de réseau'),
     };
+  }
+
+  // ── Extraction du message d'erreur backend ────────────────────────────────
+  //
+  // Le Gateway enveloppe souvent l'erreur du micro-service en aval : le
+  // `message` de premier niveau est générique (« Error occurred ») et le vrai
+  // message métier se trouve dans `debugMessage`, sous la forme
+  // `400 : "{...json...}"`. On plonge donc dans cette structure imbriquée pour
+  // remonter le message le plus utile à afficher à l'utilisateur.
+
+  /// Messages génériques du Gateway à ignorer au profit du message métier réel.
+  static const _genericMessages = {
+    '', 'error occurred', 'erreur', 'bad_request', 'internal_server_error',
+    'not_found', 'unauthorized', 'forbidden',
+  };
+
+  bool _isGeneric(String s) => _genericMessages.contains(s.trim().toLowerCase());
+
+  /// Décode un éventuel JSON imbriqué dans une chaîne (ex. le contenu de
+  /// `debugMessage` : `400 : "{...}"`), en isolant le premier objet `{...}`.
+  Map<String, dynamic>? _tryDecodeEmbeddedJson(String raw) {
+    final start = raw.indexOf('{');
+    final end = raw.lastIndexOf('}');
+    if (start == -1 || end <= start) return null;
+    try {
+      final decoded = jsonDecode(raw.substring(start, end + 1));
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Retire un préfixe de statut (`400 : `) et les guillemets englobants.
+  String _stripStatusPrefix(String s) {
+    var out = s.replaceFirst(RegExp(r'^\s*\d{3}\s*:\s*'), '').trim();
+    if (out.length >= 2 && out.startsWith('"') && out.endsWith('"')) {
+      out = out.substring(1, out.length - 1);
+    }
+    return out.trim();
+  }
+
+  /// Remonte le message backend le plus pertinent depuis [data], en explorant
+  /// récursivement `debugMessage` (qui peut contenir un JSON imbriqué).
+  String? _extractServerMessage(dynamic data) {
+    if (data == null) return null;
+
+    Map<String, dynamic>? map;
+    if (data is Map<String, dynamic>) {
+      map = data;
+    } else if (data is String) {
+      map = _tryDecodeEmbeddedJson(data);
+      if (map == null) {
+        final s = _stripStatusPrefix(data);
+        return (s.isEmpty || _isGeneric(s)) ? null : s;
+      }
+    } else {
+      return null;
+    }
+
+    final msg = map['message']?.toString();
+    final debug = map['debugMessage']?.toString();
+
+    // 1. Priorité au message profond caché dans un debugMessage imbriqué.
+    if (debug != null) {
+      final embedded = _tryDecodeEmbeddedJson(debug);
+      if (embedded != null) {
+        final deeper = _extractServerMessage(embedded);
+        if (deeper != null && !_isGeneric(deeper)) return deeper;
+      }
+    }
+
+    // 2. Sinon le message de ce niveau, s'il est réellement informatif.
+    if (msg != null && !_isGeneric(msg)) return msg.trim();
+
+    // 3. Sinon un debugMessage en clair (préfixe de statut retiré).
+    if (debug != null) {
+      final stripped = _stripStatusPrefix(debug);
+      if (stripped.isNotEmpty && !_isGeneric(stripped)) return stripped;
+    }
+
+    // 4. En dernier recours, le message générique (mieux que rien).
+    return (msg != null && msg.trim().isNotEmpty) ? msg.trim() : null;
   }
 
   // ── Sérialisation automatique ─────────────────────────────────────────────
